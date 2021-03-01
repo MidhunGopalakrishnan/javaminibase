@@ -121,7 +121,7 @@ class SORTDriver extends TestDriver
   protected boolean test1()
   {
     System.out.println("------------------------ TEST 1 --------------------------");
-    
+    PCounter.initialize();
     boolean status = OK;
 
     AttrType[] attrType = new AttrType[2];
@@ -262,7 +262,7 @@ class SORTDriver extends TestDriver
 	status = FAIL;
     }
     else if (flag && status) {
-      System.err.println("Test1 -- Sorting OK");
+      System.out.println("Test1 -- Sorting OK");
     }
 
     // clean up
@@ -273,17 +273,18 @@ class SORTDriver extends TestDriver
       status = FAIL;
       e.printStackTrace();
     }
-    
-    System.err.println("------------------- TEST 1 completed ---------------------\n");
-    
+    PCounter.printCounter();
+    System.out.println("------------------- TEST 1 completed ---------------------\n");
+
     return status;
   }
 
 
   protected boolean test2()
   {
+    System.out.println();
     System.out.println("------------------------ TEST 2 --------------------------");
-    
+    PCounter.initialize();
     boolean status = OK;
 
     AttrType[] attrType = new AttrType[1];
@@ -418,7 +419,7 @@ class SORTDriver extends TestDriver
 	status = FAIL;
     }
     else if (flag && status) {
-      System.err.println("Test2 -- Sorting OK");
+      System.out.println("Test2 -- Sorting OK");
     }
 
     // clean up
@@ -429,17 +430,18 @@ class SORTDriver extends TestDriver
       status = FAIL;
       e.printStackTrace();
     }
-    
-    System.err.println("------------------- TEST 2 completed ---------------------\n");
-        
+    PCounter.printCounter();
+    System.out.println("------------------- TEST 2 completed ---------------------\n");
+
     return status;
   }
 
 
   protected boolean test3()
   {
+    System.out.println();
     System.out.println("------------------------ TEST 3 --------------------------");
-    
+    PCounter.initialize();
     boolean status = OK;
 
     Random random1 = new Random((long) 1000);
@@ -614,7 +616,7 @@ class SORTDriver extends TestDriver
 	status = FAIL;
     }
     else if (flag && status) {
-      System.err.println("Test3 -- Sorting of int field OK\n");
+      System.out.println("Test3 -- Sorting of int field OK\n");
     }
 
     // clean up
@@ -711,7 +713,7 @@ class SORTDriver extends TestDriver
 	status = FAIL;
     }
     else if (flag && status) {
-      System.err.println("Test3 -- Sorting of float field OK\n");
+      System.out.println("Test3 -- Sorting of float field OK\n");
     }
 
     // clean up
@@ -722,16 +724,17 @@ class SORTDriver extends TestDriver
       status = FAIL;
       e.printStackTrace();
     }
-    
-    System.err.println("------------------- TEST 3 completed ---------------------\n");
-        
+    PCounter.printCounter();
+    System.out.println("------------------- TEST 3 completed ---------------------\n");
+
     return status;
   }
     
   protected boolean test4()
   {
+    System.out.println();
     System.out.println("------------------------ TEST 4 --------------------------");
-    
+    PCounter.initialize();
     boolean status = OK;
 
     AttrType[] attrType = new AttrType[2];
@@ -906,7 +909,7 @@ class SORTDriver extends TestDriver
 	status = FAIL;
     }
     else if (flag && status) {
-      System.err.println("Test4 -- Sorting OK");
+      System.out.println("Test4 -- Sorting OK");
     }
 
     // clean up
@@ -918,9 +921,9 @@ class SORTDriver extends TestDriver
       status = FAIL;
       e.printStackTrace();
     }
-    
-    System.err.println("------------------- TEST 4 completed ---------------------\n");
-    
+    PCounter.printCounter();
+    System.out.println("------------------- TEST 4 completed ---------------------\n");
+
     return status;
   }
     
