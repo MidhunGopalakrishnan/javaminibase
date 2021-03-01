@@ -538,7 +538,7 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
       return 0;
    }
 
-    private static boolean dominates(Tuple t1, AttrType[] type1,
+    public static boolean dominates(Tuple t1, AttrType[] type1,
                                      Tuple t2,
                                      AttrType[] type2,
                                      short len_in,
@@ -620,7 +620,7 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
     }
 
 
-    private static int CompareTupleWithTuplePref(Tuple t1, AttrType[] type1, Tuple t2,
+    public static int CompareTupleWithTuplePref(Tuple t1, AttrType[] type1, Tuple t2,
                                                  AttrType[] type2,
                                                  short len_in,
                                                  short[] str_sizes,
