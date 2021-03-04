@@ -552,6 +552,8 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
         for (int i = 0; i < pref_list_length; i++) {
             float firstValueFloat = 0f;
             float secondValueFloat = 0f;
+            String firstString = null;
+            String secondString = null;
             HashMap<String, Integer> bitmap = new HashMap<>();
             //below logic allows comparison of two tuples which doesnt have same attr type
             // all values moved to float for precision of results when mixed data types are involved
@@ -559,15 +561,20 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
                 firstValueFloat = (float) t1.getIntFld(pref_list[i]);
             } else if (type1[pref_list[i]].toString().equals("attrReal")) {
                 firstValueFloat = t1.getFloFld(pref_list[i]);
+            } else if (type1[pref_list[i]].toString().equals("attrString")) {
+                firstString = t1.getStrFld(pref_list[i]);
             }
+
             if (type2[pref_list[i]].toString().equals("attrInteger")) {
                 secondValueFloat = (float) t2.getIntFld(pref_list[i]);
             } else if (type2[pref_list[i]].toString().equals("attrReal")) {
                 secondValueFloat = t2.getFloFld(pref_list[i]);
+            } else if (type2[pref_list[i]].toString().equals("attrString")) {
+                secondString = t2.getStrFld(pref_list[i]);
             }
 
             // call generic method that computes and give back aValue and bValue
-            bitmap = (HashMap) calculateBitMap(firstValueFloat, secondValueFloat, aValue, bValue, i);
+            bitmap = (HashMap) calculateBitMap(firstValueFloat, secondValueFloat, aValue, bValue, i,firstString,secondString);
             //assignment aValue and bValue from the method and continue loop
             aValue = bitmap.get("aValue");
             bValue = bitmap.get("bValue");
@@ -582,36 +589,70 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
 
     }
 
-    private static Map calculateBitMap(float firstValue, float secondValue, int aValue, int bValue, int i) {
+    private static Map calculateBitMap(float firstValue, float secondValue, int aValue, int bValue, int i,String firstString, String secondString) {
         HashMap<String, Integer> bitmap = new HashMap<>();
         // algo followed is from the 'Efficient progressive skyline computation' paper : bit-map based algorithm
-        if (firstValue - secondValue > 0) {
-            //firstValue is higher
-            if (i == 0) { // first time
-                aValue = 2;
-                bValue = 0;
-            } else { // for other values of i , do a bitwise and operation
-                aValue = aValue & 2;
-                bValue = bValue | 0;
-            }
+        // check if float or String and then compare
+        if (firstString == null && secondString == null) {
+            if (firstValue - secondValue > 0) {
+                //firstValue is higher
+                if (i == 0) { // first time
+                    aValue = 2;
+                    bValue = 0;
+                } else { // for other values of i , do a bitwise and operation
+                    aValue = aValue & 2;
+                    bValue = bValue | 0;
+                }
 
-        } else if (firstValue - secondValue < 0) {
-            //second Value is greater
-            if (i == 0) { // first time
-                aValue = 3;
-                bValue = 1;
-            } else { // for other values of i , do a bitwise and operation
-                aValue = aValue & 3;
-                bValue = bValue | 1;
+            } else if (firstValue - secondValue < 0) {
+                //second Value is greater
+                if (i == 0) { // first time
+                    aValue = 3;
+                    bValue = 1;
+                } else { // for other values of i , do a bitwise and operation
+                    aValue = aValue & 3;
+                    bValue = bValue | 1;
+                }
+            } else {
+                //both are equal
+                if (i == 0) { // first time
+                    aValue = 3;
+                    bValue = 0;
+                } else { // for other values of i , do a bitwise and operation
+                    aValue = aValue & 3;
+                    bValue = bValue | 0;
+                }
             }
-        } else {
-            //both are equal
-            if (i == 0) { // first time
-                aValue = 3;
-                bValue = 0;
-            } else { // for other values of i , do a bitwise and operation
-                aValue = aValue & 3;
-                bValue = bValue | 0;
+        }
+        else if (firstString!=null && secondString!=null) {
+            if (firstString.compareTo(secondString) > 0) {
+                //firstString is higher
+                if (i == 0) { // first time
+                    aValue = 2;
+                    bValue = 0;
+                } else { // for other values of i , do a bitwise and operation
+                    aValue = aValue & 2;
+                    bValue = bValue | 0;
+                }
+
+            } else if (firstString.compareTo(secondString)< 0) {
+                //second String is greater
+                if (i == 0) { // first time
+                    aValue = 3;
+                    bValue = 1;
+                } else { // for other values of i , do a bitwise and operation
+                    aValue = aValue & 3;
+                    bValue = bValue | 1;
+                }
+            } else {
+                //both are equal
+                if (i == 0) { // first time
+                    aValue = 3;
+                    bValue = 0;
+                } else { // for other values of i , do a bitwise and operation
+                    aValue = aValue & 3;
+                    bValue = bValue | 0;
+                }
             }
         }
         bitmap.put("aValue", aValue);
@@ -629,17 +670,24 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
 
         float t1Sum =0f;
         float t2Sum =0f;
+        String firstTupleString = null;
+        String secondTupleString =null;
         for (int i = 0; i < pref_list_length; i++) {
             if (type1[pref_list[i]].toString().equals("attrInteger")) {
                 t1Sum+= (float) t1.getIntFld(pref_list[i]);
             } else if (type1[pref_list[i]].toString().equals("attrReal")) {
                 t1Sum+= t1.getFloFld(pref_list[i]);
+            } else if (type1[pref_list[i]].toString().equals("attrString")) {
+                firstTupleString = t1.getStrFld(pref_list[i]);
             }
             if (type2[pref_list[i]].toString().equals("attrInteger")) {
                 t2Sum+= (float) t2.getIntFld(pref_list[i]);
             } else if (type2[pref_list[i]].toString().equals("attrReal")) {
                 t2Sum+= t2.getFloFld(pref_list[i]);
+            } else if (type2[pref_list[i]].toString().equals("attrString")) {
+                secondTupleString = t2.getStrFld(pref_list[i]);
             }
+            t1Sum+= firstTupleString.compareTo(secondTupleString);
         }
         if(t1Sum-t2Sum >0) {
             return 1;
