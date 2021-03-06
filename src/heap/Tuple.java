@@ -546,17 +546,15 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
                                      int[] pref_list,
                                      int pref_list_length) throws IOException, FieldNumberOutOfBoundException {
 
-        int aValue = 0;
-        int bValue = 0;
-        int cValue = 0;
+        boolean chanceToDominate = false;
+        int matchingAttributes = 0;
         for (int i = 0; i < pref_list_length; i++) {
             float firstValueFloat = 0f;
             float secondValueFloat = 0f;
             String firstString = null;
             String secondString = null;
-            HashMap<String, Integer> bitmap = new HashMap<>();
-            //below logic allows comparison of two tuples which doesnt have same attr type
-            // all values moved to float for precision of results when mixed data types are involved
+
+            //get first preferred attribute value and compare
             if (type1[pref_list[i]].toString().equals("attrInteger")) {
                 firstValueFloat = (float) t1.getIntFld(pref_list[i]);
             } else if (type1[pref_list[i]].toString().equals("attrReal")) {
@@ -572,94 +570,38 @@ public void setHdr (short numFlds,  AttrType types[], short strSizes[])
             } else if (type2[pref_list[i]].toString().equals("attrString")) {
                 secondString = t2.getStrFld(pref_list[i]);
             }
-
-            // call generic method that computes and give back aValue and bValue
-            bitmap = (HashMap) calculateBitMap(firstValueFloat, secondValueFloat, aValue, bValue, i,firstString,secondString);
-            //assignment aValue and bValue from the method and continue loop
-            aValue = bitmap.get("aValue");
-            bValue = bitmap.get("bValue");
-        }
-        //get result
-        cValue = aValue & bValue;
-        if (cValue == 0) {
-            return true;
-        } else {
-            return false;
-        }
-
-    }
-
-    private static Map calculateBitMap(float firstValue, float secondValue, int aValue, int bValue, int i,String firstString, String secondString) {
-        HashMap<String, Integer> bitmap = new HashMap<>();
-        // algo followed is from the 'Efficient progressive skyline computation' paper : bit-map based algorithm
-        // check if float or String and then compare
-        if (firstString == null && secondString == null) {
-            if (firstValue - secondValue > 0) {
-                //firstValue is higher
-                if (i == 0) { // first time
-                    aValue = 2;
-                    bValue = 0;
-                } else { // for other values of i , do a bitwise and operation
-                    aValue = aValue & 2;
-                    bValue = bValue | 0;
+            // if attribute value is integer or float
+            if(firstString == null && secondString == null) {
+                if(firstValueFloat> secondValueFloat){
+                    chanceToDominate = true;
                 }
-
-            } else if (firstValue - secondValue < 0) {
-                //second Value is greater
-                if (i == 0) { // first time
-                    aValue = 3;
-                    bValue = 1;
-                } else { // for other values of i , do a bitwise and operation
-                    aValue = aValue & 3;
-                    bValue = bValue | 1;
+                else if(firstValueFloat == secondValueFloat){
+                    chanceToDominate = true;
+                    matchingAttributes++;
                 }
-            } else {
-                //both are equal
-                if (i == 0) { // first time
-                    aValue = 3;
-                    bValue = 0;
-                } else { // for other values of i , do a bitwise and operation
-                    aValue = aValue & 3;
-                    bValue = bValue | 0;
+                else {
+                    break; // exit for loop as there is not chance now the t1 tuple will dominate
+                }
+            }
+            else if (firstString!= null && secondString!=null){
+                if(firstString.compareTo(secondString)>0){
+                    chanceToDominate = true;
+                }
+                else if(firstString.compareTo(secondString)== 0){
+                    chanceToDominate = true;
+                    matchingAttributes++;
+                }
+                else {
+                    break; // exit for loop as there is not chance now the t1 tuple will dominate
                 }
             }
         }
-        else if (firstString!=null && secondString!=null) {
-            if (firstString.compareTo(secondString) > 0) {
-                //firstString is higher
-                if (i == 0) { // first time
-                    aValue = 2;
-                    bValue = 0;
-                } else { // for other values of i , do a bitwise and operation
-                    aValue = aValue & 2;
-                    bValue = bValue | 0;
-                }
-
-            } else if (firstString.compareTo(secondString)< 0) {
-                //second String is greater
-                if (i == 0) { // first time
-                    aValue = 3;
-                    bValue = 1;
-                } else { // for other values of i , do a bitwise and operation
-                    aValue = aValue & 3;
-                    bValue = bValue | 1;
-                }
-            } else {
-                //both are equal
-                if (i == 0) { // first time
-                    aValue = 3;
-                    bValue = 0;
-                } else { // for other values of i , do a bitwise and operation
-                    aValue = aValue & 3;
-                    bValue = bValue | 0;
-                }
-            }
+        //if two tuples have same preference attribute values, return false
+        if(matchingAttributes == pref_list_length) {
+            chanceToDominate = false;
         }
-        bitmap.put("aValue", aValue);
-        bitmap.put("bValue", bValue);
-        return bitmap;
+        return chanceToDominate;
     }
-
 
     public static int CompareTupleWithTuplePref(Tuple t1, AttrType[] type1, Tuple t2,
                                                  AttrType[] type2,
