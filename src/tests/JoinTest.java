@@ -217,19 +217,19 @@ class JoinsDriver implements GlobalConst {
       e.printStackTrace();
     }
 
-    String file_name = "/mnt/c/Users/pjiyer/Documents/DMSI/github project/javaminibase/src/data1.txt";
+    String file_name = "/Users/midhungopalakrishnan/Downloads/data2.txt";
     Scanner scanner = null;
     try {
       scanner = new Scanner(new File(file_name));
     } catch (FileNotFoundException e) {
       System.out.println(e);
     }
-    scanner.nextLine(); // Read the first line of the sample file and ignore it
+    int numOfColumns = scanner.nextInt(); // Read the first line of the sample file and ignore it
 
     while (scanner.hasNextLine()) {
 
       float temp_file_read;
-      for (int i = 0; i < 5; i++) // For each line, scan each column/attribute
+      for (int i = 0; i < numOfColumns; i++) // For each line, scan each column/attribute
       {
         temp_file_read = scanner.nextFloat();
         try {
@@ -461,18 +461,17 @@ class JoinsDriver implements GlobalConst {
     }
 
     // Pranav Iyer: SkylineNestedLoop Test
+    PCounter.initialize();
     System.out.println("******* Skyline Check Starting ***************");
     try {
-      FldSpec [] Pprojection = new FldSpec[5];
-      Pprojection[0] = new FldSpec(new RelSpec(RelSpec.outer), 1);
-      Pprojection[1] = new FldSpec(new RelSpec(RelSpec.outer), 2);
-      Pprojection[2] = new FldSpec(new RelSpec(RelSpec.outer), 3);
-      Pprojection[3] = new FldSpec(new RelSpec(RelSpec.outer), 4);
-      Pprojection[4] = new FldSpec(new RelSpec(RelSpec.outer), 5);
+      FldSpec [] Pprojection = new FldSpec[numOfColumns];
+      for(int i =0; i <numOfColumns;i++) {
+        Pprojection[i] = new FldSpec(new RelSpec(RelSpec.outer), i+1);
+      }
 
       FileScan am = null;
       try{
-        am = new FileScan("projectdata.in", Ptypes, Psizes, (short) 5, (short) 5, Pprojection, null);
+        am = new FileScan("projectdata.in", Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
       }
       catch (Exception e) {
         status = FAIL;
@@ -500,9 +499,10 @@ class JoinsDriver implements GlobalConst {
 
 
       int [] pref_list = {2,4};
+      int numOfPages = 10;
       short[] x = {};
-      NestedLoopsSky s =  new NestedLoopsSky(Ptypes, 5, x, am,
-              "projectdata.in", pref_list, pref_list.length, 10);
+      NestedLoopsSky s =  new NestedLoopsSky(Ptypes, numOfColumns, x, am,
+              "projectdata.in", pref_list, pref_list.length, numOfPages);
       t = new Tuple();
       t = null;
 
@@ -530,22 +530,23 @@ class JoinsDriver implements GlobalConst {
 
     finally{
       System.out.println("Yo!");
+      PCounter.printCounter();
     }
 
   }
 
   public boolean runTests() {
 
-    Disclaimer();
-    Query1();
-
-    Query2();
-    Query3();
-
-
-    Query4();
-    Query5();
-    Query6();
+//    Disclaimer();
+//    Query1();
+//
+//    Query2();
+//    Query3();
+//
+//
+//    Query4();
+//    Query5();
+//    Query6();
 
 
     System.out.print ("Finished joins testing"+"\n");
