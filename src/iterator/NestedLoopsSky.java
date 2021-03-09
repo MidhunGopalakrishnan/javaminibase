@@ -230,7 +230,7 @@ public class NestedLoopsSky  extends Iterator
                 // int pref_list_length = pref_list.length;
 
 
-                if(heap.Tuple.dominates(inner_tuple, _in1, outer_tuple, _in1,
+                if(iterator.TupleUtils.dominates(inner_tuple, _in1, outer_tuple, _in1,
                         (short)in1_len, t2_str_sizescopy, pref_list, pref_list_length)) //IF INNER ELEMENT DOMINATES
                 {
                     break;
