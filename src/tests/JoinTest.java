@@ -94,60 +94,60 @@ class JoinsDriver implements GlobalConst {
   public JoinsDriver() {
 
     // build Sailor, Boats, Reserves table
-    sailors = new Vector();
-    boats = new Vector();
-    reserves = new Vector();
-
-    sailors.addElement(new Sailor(53, "Bob Holloway", 9, 53.6));
-    sailors.addElement(new Sailor(54, "Susan Horowitz", 1, 34.2));
-    sailors.addElement(new Sailor(57, "Yannis Ioannidis", 8, 40.2));
-    sailors.addElement(new Sailor(59, "Deborah Joseph", 10, 39.8));
-    sailors.addElement(new Sailor(61, "Landwebber", 8, 56.7));
-    sailors.addElement(new Sailor(63, "James Larus", 9, 30.3));
-    sailors.addElement(new Sailor(64, "Barton Miller", 5, 43.7));
-    sailors.addElement(new Sailor(67, "David Parter", 1, 99.9));
-    sailors.addElement(new Sailor(69, "Raghu Ramakrishnan", 9, 37.1));
-    sailors.addElement(new Sailor(71, "Guri Sohi", 10, 42.1));
-    sailors.addElement(new Sailor(73, "Prasoon Tiwari", 8, 39.2));
-    sailors.addElement(new Sailor(39, "Anne Condon", 3, 30.3));
-    sailors.addElement(new Sailor(47, "Charles Fischer", 6, 46.3));
-    sailors.addElement(new Sailor(49, "James Goodman", 4, 50.3));
-    sailors.addElement(new Sailor(50, "Mark Hill", 5, 35.2));
-    sailors.addElement(new Sailor(75, "Mary Vernon", 7, 43.1));
-    sailors.addElement(new Sailor(79, "David Wood", 3, 39.2));
-    sailors.addElement(new Sailor(84, "Mark Smucker", 9, 25.3));
-    sailors.addElement(new Sailor(87, "Martin Reames", 10, 24.1));
-    sailors.addElement(new Sailor(10, "Mike Carey", 9, 40.3));
-    sailors.addElement(new Sailor(21, "David Dewitt", 10, 47.2));
-    sailors.addElement(new Sailor(29, "Tom Reps", 7, 39.1));
-    sailors.addElement(new Sailor(31, "Jeff Naughton", 5, 35.0));
-    sailors.addElement(new Sailor(35, "Miron Livny", 7, 37.6));
-    sailors.addElement(new Sailor(37, "Marv Solomon", 10, 48.9));
-
-    boats.addElement(new Boats(1, "Onion", "white"));
-    boats.addElement(new Boats(2, "Buckey", "red"));
-    boats.addElement(new Boats(3, "Enterprise", "blue"));
-    boats.addElement(new Boats(4, "Voyager", "green"));
-    boats.addElement(new Boats(5, "Wisconsin", "red"));
-
-    reserves.addElement(new Reserves(10, 1, "05/10/95"));
-    reserves.addElement(new Reserves(21, 1, "05/11/95"));
-    reserves.addElement(new Reserves(10, 2, "05/11/95"));
-    reserves.addElement(new Reserves(31, 1, "05/12/95"));
-    reserves.addElement(new Reserves(10, 3, "05/13/95"));
-    reserves.addElement(new Reserves(69, 4, "05/12/95"));
-    reserves.addElement(new Reserves(69, 5, "05/14/95"));
-    reserves.addElement(new Reserves(21, 5, "05/16/95"));
-    reserves.addElement(new Reserves(57, 2, "05/10/95"));
-    reserves.addElement(new Reserves(35, 3, "05/15/95"));
+//    sailors = new Vector();
+//    boats = new Vector();
+//    reserves = new Vector();
+//
+//    sailors.addElement(new Sailor(53, "Bob Holloway", 9, 53.6));
+//    sailors.addElement(new Sailor(54, "Susan Horowitz", 1, 34.2));
+//    sailors.addElement(new Sailor(57, "Yannis Ioannidis", 8, 40.2));
+//    sailors.addElement(new Sailor(59, "Deborah Joseph", 10, 39.8));
+//    sailors.addElement(new Sailor(61, "Landwebber", 8, 56.7));
+//    sailors.addElement(new Sailor(63, "James Larus", 9, 30.3));
+//    sailors.addElement(new Sailor(64, "Barton Miller", 5, 43.7));
+//    sailors.addElement(new Sailor(67, "David Parter", 1, 99.9));
+//    sailors.addElement(new Sailor(69, "Raghu Ramakrishnan", 9, 37.1));
+//    sailors.addElement(new Sailor(71, "Guri Sohi", 10, 42.1));
+//    sailors.addElement(new Sailor(73, "Prasoon Tiwari", 8, 39.2));
+//    sailors.addElement(new Sailor(39, "Anne Condon", 3, 30.3));
+//    sailors.addElement(new Sailor(47, "Charles Fischer", 6, 46.3));
+//    sailors.addElement(new Sailor(49, "James Goodman", 4, 50.3));
+//    sailors.addElement(new Sailor(50, "Mark Hill", 5, 35.2));
+//    sailors.addElement(new Sailor(75, "Mary Vernon", 7, 43.1));
+//    sailors.addElement(new Sailor(79, "David Wood", 3, 39.2));
+//    sailors.addElement(new Sailor(84, "Mark Smucker", 9, 25.3));
+//    sailors.addElement(new Sailor(87, "Martin Reames", 10, 24.1));
+//    sailors.addElement(new Sailor(10, "Mike Carey", 9, 40.3));
+//    sailors.addElement(new Sailor(21, "David Dewitt", 10, 47.2));
+//    sailors.addElement(new Sailor(29, "Tom Reps", 7, 39.1));
+//    sailors.addElement(new Sailor(31, "Jeff Naughton", 5, 35.0));
+//    sailors.addElement(new Sailor(35, "Miron Livny", 7, 37.6));
+//    sailors.addElement(new Sailor(37, "Marv Solomon", 10, 48.9));
+//
+//    boats.addElement(new Boats(1, "Onion", "white"));
+//    boats.addElement(new Boats(2, "Buckey", "red"));
+//    boats.addElement(new Boats(3, "Enterprise", "blue"));
+//    boats.addElement(new Boats(4, "Voyager", "green"));
+//    boats.addElement(new Boats(5, "Wisconsin", "red"));
+//
+//    reserves.addElement(new Reserves(10, 1, "05/10/95"));
+//    reserves.addElement(new Reserves(21, 1, "05/11/95"));
+//    reserves.addElement(new Reserves(10, 2, "05/11/95"));
+//    reserves.addElement(new Reserves(31, 1, "05/12/95"));
+//    reserves.addElement(new Reserves(10, 3, "05/13/95"));
+//    reserves.addElement(new Reserves(69, 4, "05/12/95"));
+//    reserves.addElement(new Reserves(69, 5, "05/14/95"));
+//    reserves.addElement(new Reserves(21, 5, "05/16/95"));
+//    reserves.addElement(new Reserves(57, 2, "05/10/95"));
+//    reserves.addElement(new Reserves(35, 3, "05/15/95"));
 
     boolean status = OK;
-    int numsailors = 25;
-    int numsailors_attrs = 4;
-    int numreserves = 10;
-    int numreserves_attrs = 3;
-    int numboats = 5;
-    int numboats_attrs = 3;
+//    int numsailors = 25;
+//    int numsailors_attrs = 4;
+//    int numreserves = 10;
+//    int numreserves_attrs = 3;
+//    int numboats = 5;
+//    int numboats_attrs = 3;
 
     String dbpath = "/tmp/" + System.getProperty("user.name") + ".minibase.jointestdb";
     String logpath = "/tmp/" + System.getProperty("user.name") + ".joinlog";
@@ -169,53 +169,14 @@ class JoinsDriver implements GlobalConst {
      * ExtendedSystemDefs extSysDef = new ExtendedSystemDefs(
      * "/tmp/minibase.jointestdb", "/tmp/joinlog", 1000,500,200,"Clock");
      */
-
+    PCounter.initialize();
     SystemDefs sysdef = new SystemDefs(dbpath, 1000, NUMBUF, "Clock");
-
+    PCounter.printCounter();
+    System.out.println("SystemDefs set");
     // Todo:
     // creating the projectdata relation
     // FOR NOW WE HAVE ASSUMED THAT THE DATA CONTAINS ONLY 5 float tuples
     // Change this!!!!!!!!
-
-    AttrType[] Ptypes = new AttrType[5];
-    Ptypes[0] = new AttrType(AttrType.attrReal);
-    Ptypes[1] = new AttrType(AttrType.attrReal);
-    Ptypes[2] = new AttrType(AttrType.attrReal);
-    Ptypes[3] = new AttrType(AttrType.attrReal);
-    Ptypes[4] = new AttrType(AttrType.attrReal);
-
-    short[] Psizes = {};
-
-    Tuple t = new Tuple();
-    try {
-      t.setHdr((short) 5, Ptypes, Psizes);
-    } catch (Exception e) {
-      System.err.println("*** error in Tuple.setHdr() ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    int size = t.size();
-
-    // inserting the tuple into file "projectdata"
-    RID rid;
-    Heapfile f = null;
-    try {
-      f = new Heapfile("projectdata.in");
-    } catch (Exception e) {
-      System.err.println("*** error in Heapfile constructor ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    t = new Tuple(size);
-    try {
-      t.setHdr((short) 5, Ptypes, Psizes);
-    } catch (Exception e) {
-      System.err.println("*** error in Tuple.setHdr() ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
 
     String file_name = "/Users/midhungopalakrishnan/Downloads/data2.txt";
     Scanner scanner = null;
@@ -225,6 +186,47 @@ class JoinsDriver implements GlobalConst {
       System.out.println(e);
     }
     int numOfColumns = scanner.nextInt(); // Read the first line of the sample file and ignore it
+
+    AttrType[] Ptypes = new AttrType[numOfColumns];
+    for(int i=0;i<numOfColumns;i++){
+      Ptypes[i] = new AttrType(AttrType.attrReal);
+    }
+
+    short[] Psizes = {};
+
+    Tuple t = new Tuple();
+    try {
+      t.setHdr((short)numOfColumns, Ptypes, Psizes);
+    } catch (Exception e) {
+      System.err.println("*** error in Tuple.setHdr() ***");
+      status = FAIL;
+      e.printStackTrace();
+    }
+
+    int size = t.size();
+    System.out.println("Tuple size : "+ size);
+
+    // inserting the tuple into file "projectdata"
+    RID rid;
+    Heapfile f = null;
+    try {
+      f = new Heapfile("projectdata.in");
+    //  PCounter.printCounter();
+     // System.out.println("Heap file created");
+    } catch (Exception e) {
+      System.err.println("*** error in Heapfile constructor ***");
+      status = FAIL;
+      e.printStackTrace();
+    }
+
+    t = new Tuple(size);
+    try {
+      t.setHdr((short) numOfColumns, Ptypes, Psizes);
+    } catch (Exception e) {
+      System.err.println("*** error in Tuple.setHdr() ***");
+      status = FAIL;
+      e.printStackTrace();
+    }
 
     while (scanner.hasNextLine()) {
 
@@ -245,6 +247,9 @@ class JoinsDriver implements GlobalConst {
 
       try {
         rid = f.insertRecord(t.returnTupleByteArray());
+       // PCounter.printCounter();
+        //System.out.println("Record inserted");
+
       }
 
       catch (Exception e) {
@@ -264,204 +269,203 @@ class JoinsDriver implements GlobalConst {
     }
 
 
-    // creating the sailors relation
-    AttrType[] Stypes = new AttrType[4];
-    Stypes[0] = new AttrType(AttrType.attrInteger);
-    Stypes[1] = new AttrType(AttrType.attrString);
-    Stypes[2] = new AttrType(AttrType.attrInteger);
-    Stypes[3] = new AttrType(AttrType.attrReal);
-
-    // SOS
-    short[] Ssizes = new short[1];
-    Ssizes[0] = 30; // first elt. is 30
-
-    t = new Tuple();
-    try {
-      t.setHdr((short) 4, Stypes, Ssizes);
-    } catch (Exception e) {
-      System.err.println("*** error in Tuple.setHdr() ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    size = t.size();
-
-    // inserting the tuple into file "sailors"
-    // RID rid;
-    // Heapfile f = null;
-    try {
-      f = new Heapfile("sailors.in");
-    } catch (Exception e) {
-      System.err.println("*** error in Heapfile constructor ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    t = new Tuple(size);
-    try {
-      t.setHdr((short) 4, Stypes, Ssizes);
-    } catch (Exception e) {
-      System.err.println("*** error in Tuple.setHdr() ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    for (int i = 0; i < numsailors; i++) {
-      try {
-        t.setIntFld(1, ((Sailor) sailors.elementAt(i)).sid);
-        t.setStrFld(2, ((Sailor) sailors.elementAt(i)).sname);
-        t.setIntFld(3, ((Sailor) sailors.elementAt(i)).rating);
-        t.setFloFld(4, (float) ((Sailor) sailors.elementAt(i)).age);
-      } catch (Exception e) {
-        System.err.println("*** Heapfile error in Tuple.setStrFld() ***");
-        status = FAIL;
-        e.printStackTrace();
-      }
-
-      try {
-        rid = f.insertRecord(t.returnTupleByteArray());
-      } catch (Exception e) {
-        System.err.println("*** error in Heapfile.insertRecord() ***");
-        status = FAIL;
-        e.printStackTrace();
-      }
-    }
-    if (status != OK) {
-      // bail out
-      System.err.println("*** Error creating relation for sailors");
-      Runtime.getRuntime().exit(1);
-    }
-
-    // creating the boats relation
-    AttrType[] Btypes = { new AttrType(AttrType.attrInteger), new AttrType(AttrType.attrString),
-            new AttrType(AttrType.attrString), };
-
-    short[] Bsizes = new short[2];
-    Bsizes[0] = 30;
-    Bsizes[1] = 20;
-    t = new Tuple();
-    try {
-      t.setHdr((short) 3, Btypes, Bsizes);
-    } catch (Exception e) {
-      System.err.println("*** error in Tuple.setHdr() ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    size = t.size();
-
-    // inserting the tuple into file "boats"
-    // RID rid;
-    f = null;
-    try {
-      f = new Heapfile("boats.in");
-    } catch (Exception e) {
-      System.err.println("*** error in Heapfile constructor ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    t = new Tuple(size);
-    try {
-      t.setHdr((short) 3, Btypes, Bsizes);
-    } catch (Exception e) {
-      System.err.println("*** error in Tuple.setHdr() ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    for (int i = 0; i < numboats; i++) {
-      try {
-        t.setIntFld(1, ((Boats) boats.elementAt(i)).bid);
-        t.setStrFld(2, ((Boats) boats.elementAt(i)).bname);
-        t.setStrFld(3, ((Boats) boats.elementAt(i)).color);
-      } catch (Exception e) {
-        System.err.println("*** error in Tuple.setStrFld() ***");
-        status = FAIL;
-        e.printStackTrace();
-      }
-
-      try {
-        rid = f.insertRecord(t.returnTupleByteArray());
-      } catch (Exception e) {
-        System.err.println("*** error in Heapfile.insertRecord() ***");
-        status = FAIL;
-        e.printStackTrace();
-      }
-    }
-    if (status != OK) {
-      // bail out
-      System.err.println("*** Error creating relation for boats");
-      Runtime.getRuntime().exit(1);
-    }
-
-    // creating the boats relation
-    AttrType[] Rtypes = new AttrType[3];
-    Rtypes[0] = new AttrType(AttrType.attrInteger);
-    Rtypes[1] = new AttrType(AttrType.attrInteger);
-    Rtypes[2] = new AttrType(AttrType.attrString);
-
-    short[] Rsizes = new short[1];
-    Rsizes[0] = 15;
-    t = new Tuple();
-    try {
-      t.setHdr((short) 3, Rtypes, Rsizes);
-    } catch (Exception e) {
-      System.err.println("*** error in Tuple.setHdr() ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    size = t.size();
-
-    // inserting the tuple into file "boats"
-    // RID rid;
-    f = null;
-    try {
-      f = new Heapfile("reserves.in");
-    } catch (Exception e) {
-      System.err.println("*** error in Heapfile constructor ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    t = new Tuple(size);
-    try {
-      t.setHdr((short) 3, Rtypes, Rsizes);
-    } catch (Exception e) {
-      System.err.println("*** error in Tuple.setHdr() ***");
-      status = FAIL;
-      e.printStackTrace();
-    }
-
-    for (int i = 0; i < numreserves; i++) {
-      try {
-        t.setIntFld(1, ((Reserves) reserves.elementAt(i)).sid);
-        t.setIntFld(2, ((Reserves) reserves.elementAt(i)).bid);
-        t.setStrFld(3, ((Reserves) reserves.elementAt(i)).date);
-
-      } catch (Exception e) {
-        System.err.println("*** error in Tuple.setStrFld() ***");
-        status = FAIL;
-        e.printStackTrace();
-      }
-
-      try {
-        rid = f.insertRecord(t.returnTupleByteArray());
-      } catch (Exception e) {
-        System.err.println("*** error in Heapfile.insertRecord() ***");
-        status = FAIL;
-        e.printStackTrace();
-      }
-    }
-    if (status != OK) {
-      // bail out
-      System.err.println("*** Error creating relation for reserves");
-      Runtime.getRuntime().exit(1);
-    }
+//    // creating the sailors relation
+//    AttrType[] Stypes = new AttrType[4];
+//    Stypes[0] = new AttrType(AttrType.attrInteger);
+//    Stypes[1] = new AttrType(AttrType.attrString);
+//    Stypes[2] = new AttrType(AttrType.attrInteger);
+//    Stypes[3] = new AttrType(AttrType.attrReal);
+//
+//    // SOS
+//    short[] Ssizes = new short[1];
+//    Ssizes[0] = 30; // first elt. is 30
+//
+//    t = new Tuple();
+//    try {
+//      t.setHdr((short) 4, Stypes, Ssizes);
+//    } catch (Exception e) {
+//      System.err.println("*** error in Tuple.setHdr() ***");
+//      status = FAIL;
+//      e.printStackTrace();
+//    }
+//
+//    size = t.size();
+//
+//    // inserting the tuple into file "sailors"
+//    // RID rid;
+//    // Heapfile f = null;
+//    try {
+//      f = new Heapfile("sailors.in");
+//    } catch (Exception e) {
+//      System.err.println("*** error in Heapfile constructor ***");
+//      status = FAIL;
+//      e.printStackTrace();
+//    }
+//
+//    t = new Tuple(size);
+//    try {
+//      t.setHdr((short) 4, Stypes, Ssizes);
+//    } catch (Exception e) {
+//      System.err.println("*** error in Tuple.setHdr() ***");
+//      status = FAIL;
+//      e.printStackTrace();
+//    }
+//
+//    for (int i = 0; i < numsailors; i++) {
+//      try {
+//        t.setIntFld(1, ((Sailor) sailors.elementAt(i)).sid);
+//        t.setStrFld(2, ((Sailor) sailors.elementAt(i)).sname);
+//        t.setIntFld(3, ((Sailor) sailors.elementAt(i)).rating);
+//        t.setFloFld(4, (float) ((Sailor) sailors.elementAt(i)).age);
+//      } catch (Exception e) {
+//        System.err.println("*** Heapfile error in Tuple.setStrFld() ***");
+//        status = FAIL;
+//        e.printStackTrace();
+//      }
+//
+//      try {
+//        rid = f.insertRecord(t.returnTupleByteArray());
+//      } catch (Exception e) {
+//        System.err.println("*** error in Heapfile.insertRecord() ***");
+//        status = FAIL;
+//        e.printStackTrace();
+//      }
+//    }
+//    if (status != OK) {
+//      // bail out
+//      System.err.println("*** Error creating relation for sailors");
+//      Runtime.getRuntime().exit(1);
+//    }
+//
+//    // creating the boats relation
+//    AttrType[] Btypes = { new AttrType(AttrType.attrInteger), new AttrType(AttrType.attrString),
+//            new AttrType(AttrType.attrString), };
+//
+//    short[] Bsizes = new short[2];
+//    Bsizes[0] = 30;
+//    Bsizes[1] = 20;
+//    t = new Tuple();
+//    try {
+//      t.setHdr((short) 3, Btypes, Bsizes);
+//    } catch (Exception e) {
+//      System.err.println("*** error in Tuple.setHdr() ***");
+//      status = FAIL;
+//      e.printStackTrace();
+//    }
+//
+//    size = t.size();
+//
+//    // inserting the tuple into file "boats"
+//    // RID rid;
+//    f = null;
+//    try {
+//      f = new Heapfile("boats.in");
+//    } catch (Exception e) {
+//      System.err.println("*** error in Heapfile constructor ***");
+//      status = FAIL;
+//      e.printStackTrace();
+//    }
+//
+//    t = new Tuple(size);
+//    try {
+//      t.setHdr((short) 3, Btypes, Bsizes);
+//    } catch (Exception e) {
+//      System.err.println("*** error in Tuple.setHdr() ***");
+//      status = FAIL;
+//      e.printStackTrace();
+//    }
+//
+//    for (int i = 0; i < numboats; i++) {
+//      try {
+//        t.setIntFld(1, ((Boats) boats.elementAt(i)).bid);
+//        t.setStrFld(2, ((Boats) boats.elementAt(i)).bname);
+//        t.setStrFld(3, ((Boats) boats.elementAt(i)).color);
+//      } catch (Exception e) {
+//        System.err.println("*** error in Tuple.setStrFld() ***");
+//        status = FAIL;
+//        e.printStackTrace();
+//      }
+//
+//      try {
+//        rid = f.insertRecord(t.returnTupleByteArray());
+//      } catch (Exception e) {
+//        System.err.println("*** error in Heapfile.insertRecord() ***");
+//        status = FAIL;
+//        e.printStackTrace();
+//      }
+//    }
+//    if (status != OK) {
+//      // bail out
+//      System.err.println("*** Error creating relation for boats");
+//      Runtime.getRuntime().exit(1);
+//    }
+//
+//    // creating the boats relation
+//    AttrType[] Rtypes = new AttrType[3];
+//    Rtypes[0] = new AttrType(AttrType.attrInteger);
+//    Rtypes[1] = new AttrType(AttrType.attrInteger);
+//    Rtypes[2] = new AttrType(AttrType.attrString);
+//
+//    short[] Rsizes = new short[1];
+//    Rsizes[0] = 15;
+//    t = new Tuple();
+//    try {
+//      t.setHdr((short) 3, Rtypes, Rsizes);
+//    } catch (Exception e) {
+//      System.err.println("*** error in Tuple.setHdr() ***");
+//      status = FAIL;
+//      e.printStackTrace();
+//    }
+//
+//    size = t.size();
+//
+//    // inserting the tuple into file "boats"
+//    // RID rid;
+//    f = null;
+//    try {
+//      f = new Heapfile("reserves.in");
+//    } catch (Exception e) {
+//      System.err.println("*** error in Heapfile constructor ***");
+//      status = FAIL;
+//      e.printStackTrace();
+//    }
+//
+//    t = new Tuple(size);
+//    try {
+//      t.setHdr((short) 3, Rtypes, Rsizes);
+//    } catch (Exception e) {
+//      System.err.println("*** error in Tuple.setHdr() ***");
+//      status = FAIL;
+//      e.printStackTrace();
+//    }
+//
+//    for (int i = 0; i < numreserves; i++) {
+//      try {
+//        t.setIntFld(1, ((Reserves) reserves.elementAt(i)).sid);
+//        t.setIntFld(2, ((Reserves) reserves.elementAt(i)).bid);
+//        t.setStrFld(3, ((Reserves) reserves.elementAt(i)).date);
+//
+//      } catch (Exception e) {
+//        System.err.println("*** error in Tuple.setStrFld() ***");
+//        status = FAIL;
+//        e.printStackTrace();
+//      }
+//
+//      try {
+//        rid = f.insertRecord(t.returnTupleByteArray());
+//      } catch (Exception e) {
+//        System.err.println("*** error in Heapfile.insertRecord() ***");
+//        status = FAIL;
+//        e.printStackTrace();
+//      }
+//    }
+//    if (status != OK) {
+//      // bail out
+//      System.err.println("*** Error creating relation for reserves");
+//      Runtime.getRuntime().exit(1);
+//    }
 
     // Pranav Iyer: SkylineNestedLoop Test
-    PCounter.initialize();
     System.out.println("******* Skyline Check Starting ***************");
     try {
       FldSpec [] Pprojection = new FldSpec[numOfColumns];
@@ -472,6 +476,8 @@ class JoinsDriver implements GlobalConst {
       FileScan am = null;
       try{
         am = new FileScan("projectdata.in", Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
+        PCounter.printCounter();
+        System.out.println("File Scan completed");
       }
       catch (Exception e) {
         status = FAIL;
@@ -503,6 +509,8 @@ class JoinsDriver implements GlobalConst {
       short[] x = {};
       NestedLoopsSky s =  new NestedLoopsSky(Ptypes, numOfColumns, x, am,
               "projectdata.in", pref_list, pref_list.length, numOfPages);
+      PCounter.printCounter();
+      System.out.println("NestedLoopSky completed");
       t = new Tuple();
       t = null;
 

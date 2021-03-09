@@ -184,6 +184,8 @@ public class NestedLoopsSky  extends Iterator
 
                 try {
                     inner = hf.openScan();
+//                    PCounter.printCounter();
+//                    System.out.println("Inner Open Scan complete");
                 }
                 catch(Exception e){
                     throw new NestedLoopException(e, "openScan failed");
@@ -199,6 +201,9 @@ public class NestedLoopsSky  extends Iterator
                     }
 
                     return null;
+                } else {
+//                    PCounter.printCounter();
+//                    System.out.println("Outer loop incremented");
                 }
             }  // ENDS: if (get_from_outer == TRUE)
 
@@ -211,7 +216,9 @@ public class NestedLoopsSky  extends Iterator
             RID rid = new RID();
             while ((inner_tuple = inner.getNext(rid)) != null) // ERROR HERE INNER TUPLE NOT BEING ASSIGNED
             // while ((inner_tuple = inner.getNext()) != null)
-            {
+           {
+                //            PCounter.printCounter();
+//                System.out.println("Inner loop incremented");
                 inner_tuple.setHdr((short)in1_len, _in1, t2_str_sizescopy);
 
                 // HERE CHECK WHETHER THE INNER TUPLE DOMINATES THE OUTER TUPLE
