@@ -83,7 +83,7 @@ public abstract class pnodePQ
     SortPref fake = new SortPref();
     int ans = 0;
     try {
-      ans = Tuple.CompareTupleWithTuplePref(a.tuple, fake._in, b.tuple, fake._in,
+      ans = TupleUtils.CompareTupleWithTuplePref(a.tuple, fake._in, b.tuple, fake._in,
               fake.n_cols, fake.str_lens, fake._pref_list, fake._pref_list_len);
     }  catch (Exception e){
       try {

@@ -246,7 +246,7 @@ public class SortPref extends Iterator implements GlobalConst{
              */
             //System.out.println("cur_node tuple");
             //cur_node.tuple.print(_in);
-            comp_res = Tuple.CompareTupleWithTuplePref(cur_node.tuple, _in,lastElem, _in
+            comp_res = TupleUtils.CompareTupleWithTuplePref(cur_node.tuple, _in,lastElem, _in
                     ,n_cols,str_lens,_pref_list,_pref_list_len);
             //comp_res = TupleUtils.CompareTupleWithValue(sortFldType, cur_node.tuple, _sort_fld, lastElem);  // need tuple_utils.java
 
@@ -963,7 +963,7 @@ public class SortPref extends Iterator implements GlobalConst{
 
             //System.out.println("cur_node tuple");
             //cur_node.tuple.print(_in);
-            comp_res = Tuple.CompareTupleWithTuplePref(cur_node.tuple, _in,lastElem, _in
+            comp_res = TupleUtils.CompareTupleWithTuplePref(cur_node.tuple, _in,lastElem, _in
                     ,n_cols,str_lens,_pref_list,_pref_list_len);
             //comp_res = TupleUtils.CompareTupleWithValue(sortFldType, cur_node.tuple, _sort_fld, lastElem);  // need tuple_utils.java
 
