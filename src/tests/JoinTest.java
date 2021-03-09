@@ -502,8 +502,6 @@ class JoinsDriver implements GlobalConst {
       //   System.out.println(x);
       // }
 
-
-
       int [] pref_list = {2,4};
       int numOfPages = 10;
       short[] x = {};
