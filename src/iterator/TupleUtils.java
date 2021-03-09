@@ -155,7 +155,7 @@ public class TupleUtils
 					matchingAttributes++;
 				}
 				else {
-					break; // exit for loop as there is not chance now the t1 tuple will dominate
+					return false; // exit for loop as there is not chance now the t1 tuple will dominate
 				}
 			}
 			else if (firstString!= null && secondString!=null){
@@ -167,7 +167,7 @@ public class TupleUtils
 					matchingAttributes++;
 				}
 				else {
-					break; // exit for loop as there is not chance now the t1 tuple will dominate
+					return false; // exit for loop as there is not chance now the t1 tuple will dominate
 				}
 			}
 		}
