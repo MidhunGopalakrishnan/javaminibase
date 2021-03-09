@@ -277,8 +277,55 @@ public class TupleUtils
       }
       return temp;
     }
-  
- 
+
+    //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+	/**
+	 *set up a tuple in specified field from a tuple
+	 *@param value the tuple to be set
+	 *@param tuple the given tuple
+	 *@param fld_nos the field number
+	 *@param fldType the tuple attr type
+	 *@exception UnknowAttrType don't know the attribute type
+	 *@exception IOException some I/O fault
+	 *@exception TupleUtilsException exception from this class
+	 */
+	public static void SetValue(Tuple value, Tuple  tuple, int[] fld_nos, AttrType[] fldType)
+			throws IOException,
+			UnknowAttrType,
+			TupleUtilsException
+	{
+for(int i = 0; i < fld_nos.length; i++) {
+	switch (fldType[i].attrType) {
+		case AttrType.attrInteger:
+			try {
+				value.setIntFld(fld_nos[i]+1, tuple.getIntFld(fld_nos[i] +1));
+			} catch (FieldNumberOutOfBoundException e) {
+				throw new TupleUtilsException(e, "FieldNumberOutOfBoundException is caught by TupleUtils.java");
+			}
+			break;
+		case AttrType.attrReal:
+			try {
+				value.setFloFld(fld_nos[i]+1, tuple.getFloFld(fld_nos[i]+1));
+			} catch (FieldNumberOutOfBoundException e) {
+				throw new TupleUtilsException(e, "FieldNumberOutOfBoundException is caught by TupleUtils.java");
+			}
+			break;
+		case AttrType.attrString:
+			try {
+				value.setStrFld(fld_nos[i], tuple.getStrFld(fld_nos[i]));
+			} catch (FieldNumberOutOfBoundException e) {
+				throw new TupleUtilsException(e, "FieldNumberOutOfBoundException is caught by TupleUtils.java");
+			}
+			break;
+		default:
+			throw new UnknowAttrType(null, "Don't know how to handle attrSymbol, attrNull");
+
+	}
+}
+
+		return;
+	}
+
   /**
    *set up a tuple in specified field from a tuple
    *@param value the tuple to be set 

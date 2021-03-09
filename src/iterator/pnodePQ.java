@@ -25,6 +25,9 @@ public abstract class pnodePQ
   /** the sorting order (Ascending or Descending) */
   protected TupleOrder            sort_order;
 
+  //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+  protected int[]                  pref_list;
+  protected AttrType[]             attr_type;
   /**
    * class constructor, set <code>count</code> to <code>0</code>.
    */
@@ -74,9 +77,21 @@ public abstract class pnodePQ
    *                           <code>attrNull</code> encountered
    * @exception TupleUtilsException error in tuple compare routines
    */
-  public int pnodeCMP(pnode a, pnode b) 
+  public int pnodeCMP(pnode a, pnode b)
          throws IOException, UnknowAttrType, TupleUtilsException {
-    int ans = TupleUtils.CompareTupleWithTuple(fld_type, a.tuple, fld_no, b.tuple, fld_no);
+    //int ans = TupleUtils.CompareTupleWithTuple(fld_type, a.tuple, fld_no, b.tuple, fld_no);
+    SortPref fake = new SortPref();
+    int ans = 0;
+    try {
+      ans = Tuple.CompareTupleWithTuplePref(a.tuple, fake._in, b.tuple, fake._in,
+              fake.n_cols, fake.str_lens, fake._pref_list, fake._pref_list_len);
+    }  catch (Exception e){
+      try {
+        throw new SortException(e,"FIELD OUT OF BOUNDS IN PNODECMP");
+      } catch (SortException sortException) {
+        sortException.printStackTrace();
+      }
+    }
     return ans;
   }
 

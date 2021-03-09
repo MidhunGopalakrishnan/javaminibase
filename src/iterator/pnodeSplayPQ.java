@@ -29,9 +29,27 @@ public class pnodeSplayPQ extends pnodePQ
     root = null;
     count = 0;
     fld_no = 0;
+    //pref_list = [];
+    //attr_type = [];
     fld_type = new AttrType(AttrType.attrInteger);
     sort_order = new TupleOrder(TupleOrder.Ascending);
   }
+
+//44$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+	/**
+	 * class constructor.
+	 * @param preflist   the field number for sorting
+	 * @param attrType the type of the field for sorting
+	 * @param order   the order of sorting (Ascending or Descending)
+	 */
+	public pnodeSplayPQ(int[] preflist, AttrType[] attrType, TupleOrder order)
+	{
+		root = null;
+		count = 0;
+		pref_list  = preflist;
+		attr_type = attrType;
+		sort_order = order;
+	}
 
   /**
    * class constructor.

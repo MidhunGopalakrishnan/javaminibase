@@ -245,9 +245,9 @@ public class Tuple implements GlobalConst{
    	throws IOException, FieldNumberOutOfBoundException 
    { 
          String val;
-    if ( (fldNo > 0) && (fldNo <= fldCnt))      
+    if ( (fldNo > 0) && (fldNo <= fldCnt))
      {
-        val = Convert.getStrValue(fldOffset[fldNo -1], data, 
+        val = Convert.getStrValue(fldOffset[fldNo -1], data,
 		fldOffset[fldNo] - fldOffset[fldNo -1]); //strlen+2
         return val;
      }

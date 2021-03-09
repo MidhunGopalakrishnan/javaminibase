@@ -257,7 +257,6 @@ class JoinsDriver implements GlobalConst {
         status = FAIL;
         e.printStackTrace();
       }
-
     }
 
     scanner.close();
@@ -561,6 +560,12 @@ class JoinsDriver implements GlobalConst {
     return true;
   }
 
+//  private void testSkyLine() {
+//    System.out.println("Testing skyline join");
+//    NestedLoopsSky nls = new NestedLoopsSky(AttrType[] in1, int len_in1, short[] t1_str_sizes, Iterator am1,
+//            String relationName, int[] pref_list, int pref_list_length, int n_pages);
+//  }
+
   private void Query1_CondExpr(CondExpr[] expr) {
 
     expr[0].next  = null;
@@ -694,6 +699,13 @@ class JoinsDriver implements GlobalConst {
     expr2[1].operand2.string = "red";
 
     expr2[2] = null;
+  }
+
+
+  public void SkylineCheck()
+  {
+    System.out.println("******* Skyline Check Starting ***************");
+    boolean status = OK;
   }
 
   public void Query1() {
@@ -1856,8 +1868,7 @@ class JoinsDriver implements GlobalConst {
 
 public class JoinTest
 {
-  public static void main(String argv[])
-  {
+  public static void main(String argv[]) throws Exception {
     boolean sortstatus;
     //SystemDefs global = new SystemDefs("bingjiedb", 100, 70, null);
     //JavabaseDB.openDB("/tmp/nwangdb", 5000);
