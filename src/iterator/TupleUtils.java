@@ -191,20 +191,21 @@ public class TupleUtils
 		String secondTupleString =null;
 		for (int i = 0; i < pref_list_length; i++) {
 			if (type1[pref_list[i]].toString().equals("attrInteger")) {
-				t1Sum+= (float) t1.getIntFld(pref_list[i]);
+				t1Sum+= (float) t1.getIntFld(pref_list[i]+1);
 			} else if (type1[pref_list[i]].toString().equals("attrReal")) {
-				t1Sum+= t1.getFloFld(pref_list[i]);
+				t1Sum+= t1.getFloFld(pref_list[i]+1);
 			} else if (type1[pref_list[i]].toString().equals("attrString")) {
 				firstTupleString = t1.getStrFld(pref_list[i]);
 			}
 			if (type2[pref_list[i]].toString().equals("attrInteger")) {
-				t2Sum+= (float) t2.getIntFld(pref_list[i]);
+				t2Sum+= (float) t2.getIntFld(pref_list[i]+1);
 			} else if (type2[pref_list[i]].toString().equals("attrReal")) {
-				t2Sum+= t2.getFloFld(pref_list[i]);
+				t2Sum+= t2.getFloFld(pref_list[i]+1);
 			} else if (type2[pref_list[i]].toString().equals("attrString")) {
 				secondTupleString = t2.getStrFld(pref_list[i]);
+				t1Sum+= firstTupleString.compareTo(secondTupleString);
 			}
-			t1Sum+= firstTupleString.compareTo(secondTupleString);
+
 		}
 		if(t1Sum-t2Sum >0) {
 			return 1;
