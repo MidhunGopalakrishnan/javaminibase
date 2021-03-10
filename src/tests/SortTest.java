@@ -46,10 +46,10 @@ class SORTDriver extends TestDriver
 	"yi-chun", "yiching", "yuc", "yung", "yuvadee", "zmudzin" };
 
   private static int   NUM_RECORDS = data2.length; 
-  private static int   LARGE = 3400;
+  private static int   LARGE = 3000;
   private static short REC_LEN1 = 32; 
   private static short REC_LEN2 = 160; 
-  private static int   SORTPGNUM = 17;
+  private static int   SORTPGNUM = 15;
 
 
   public SORTDriver() {

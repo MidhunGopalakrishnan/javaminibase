@@ -717,9 +717,9 @@ public class SortPref extends Iterator implements GlobalConst{
 
         o_buf.init(bufs, _n_pages, tuple_size, temp_files[0], false);
         //    output_tuple = null;
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+        max_elems_in_heap = 200;     // should be around 2500 for large data sets!!!!
 
-        max_elems_in_heap = 200;
-        //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
         // _pref_list_len = pref_list_len;
         //sortFldLen = sort_fld_len;
         //for(int i = 0; i < _pref_list_len; i++)
