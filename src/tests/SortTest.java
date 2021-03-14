@@ -46,7 +46,7 @@ class SORTDriver extends TestDriver
 	"yi-chun", "yiching", "yuc", "yung", "yuvadee", "zmudzin" };
 
   private static int   NUM_RECORDS = data2.length; 
-  private static int   LARGE = 3000;
+  private static int   LARGE = 8000;
   private static short REC_LEN1 = 32; 
   private static short REC_LEN2 = 160; 
   private static int   SORTPGNUM = 15;
@@ -60,7 +60,7 @@ class SORTDriver extends TestDriver
     
     System.out.println ("\n" + "Running " + testName() + " tests...." + "\n");
     
-    SystemDefs sysdef = new SystemDefs( dbpath, 900, NUMBUF, "Clock" );
+    SystemDefs sysdef = new SystemDefs( dbpath, 1000, NUMBUF, "Clock" );
 
     // Kill anything that might be hanging around
     String newdbpath;

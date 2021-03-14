@@ -131,17 +131,17 @@ public class TupleUtils
 
 			//get first preferred attribute value and compare
 			if (type1[pref_list[i]].toString().equals("attrInteger")) {
-				firstValueFloat = (float) t1.getIntFld(pref_list[i]);
+				firstValueFloat = (float) t1.getIntFld(pref_list[i]+1);
 			} else if (type1[pref_list[i]].toString().equals("attrReal")) {
-				firstValueFloat = t1.getFloFld(pref_list[i]);
+				firstValueFloat = t1.getFloFld(pref_list[i]+1);
 			} else if (type1[pref_list[i]].toString().equals("attrString")) {
 				firstString = t1.getStrFld(pref_list[i]);
 			}
 
 			if (type2[pref_list[i]].toString().equals("attrInteger")) {
-				secondValueFloat = (float) t2.getIntFld(pref_list[i]);
+				secondValueFloat = (float) t2.getIntFld(pref_list[i]+1);
 			} else if (type2[pref_list[i]].toString().equals("attrReal")) {
-				secondValueFloat = t2.getFloFld(pref_list[i]);
+				secondValueFloat = t2.getFloFld(pref_list[i]+1);
 			} else if (type2[pref_list[i]].toString().equals("attrString")) {
 				secondString = t2.getStrFld(pref_list[i]);
 			}
