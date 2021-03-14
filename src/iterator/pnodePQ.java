@@ -25,7 +25,7 @@ public abstract class pnodePQ
   /** the sorting order (Ascending or Descending) */
   protected TupleOrder            sort_order;
 
-  //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+  /** attributes to call CompareTupleWithTuplePref */
   protected int[]                  pref_list;
   protected AttrType[]             attr_type;
   /**
@@ -79,10 +79,11 @@ public abstract class pnodePQ
    */
   public int pnodeCMP(pnode a, pnode b)
          throws IOException, UnknowAttrType, TupleUtilsException {
-    //int ans = TupleUtils.CompareTupleWithTuple(fld_type, a.tuple, fld_no, b.tuple, fld_no);
+    // call dummy constructor
     SortPref fake = new SortPref();
     int ans = 0;
     try {
+      // call CompareTupleWithTuplePref instead of Tuple with Tuple
       ans = TupleUtils.CompareTupleWithTuplePref(a.tuple, fake._in, b.tuple, fake._in,
               fake.n_cols, fake.str_lens, fake._pref_list, fake._pref_list_len);
     }  catch (Exception e){

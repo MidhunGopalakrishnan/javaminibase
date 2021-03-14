@@ -23,28 +23,28 @@ import java.util.Arrays;
 
 public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
 {
-    private AttrType      _in1[];
-    private   int        in1_len;
-    private   short t1_str_sizescopy[];
-    private int [] pref_list;
-    private int pref_list_length;
-    private int n_pages;
+    private AttrType    _in1[];
+    private   int       in1_len;
+    private   short     t1_str_sizescopy[];
+    private int []      pref_list;
+    private int         pref_list_length;
+    private int         n_pages;
 
     private   Iterator  file_iterator;
-    private   int        n_buf_pgs;        // # of buffer pages available.
-    private   boolean    done;        // Is the join complete
+    private   int       n_buf_pgs;        // # of buffer pages available.
+    private   boolean   done;        // Is the join complete
     private   Tuple     outer_tuple, inner_tuple;
     private   Heapfile  hf, temp, temp1;
     private   Scan      tempScan;
 
-    private ArrayList<Tuple> skyline_mainm;
-    private ArrayList<Integer> mainm_insert_time, tempfile_insert_time;
-    private int time; // keeps track of insert times
-    private int max_tuples_mainm;
-    private int temp_file_number;
-    boolean diskdone; //If we have read all records from disk and heapfile but there are records in mainm
-    boolean get_next_returned;
-    RID rid_prev;
+    private ArrayList<Tuple>    skyline_mainm;
+    private ArrayList<Integer>  mainm_insert_time, tempfile_insert_time;
+    private int                 time; // keeps track of insert times
+    private int                 max_tuples_mainm;
+    private int                 temp_file_number;
+    boolean                     diskdone; //If we have read all records from disk and heapfile but there are records in mainm
+    boolean                     get_next_returned;
+    RID                         rid_prev;
 
     /**constructor
      *@param in1  Array containing field types of the tuples to be checked for dominates
@@ -53,7 +53,9 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
      *@param amt_of_mem  IN PAGES
      *@param am1  access method for left i/p to join
      *@param relationName  access hfapfile for right i/p to join
-
+     *@param p_list array that holds indexes of elements to be checked for skyline candidacy
+     *@param p_list_len length of the array p_list
+     *@param amt_of_mem the number of pages that are available
 
      * @throws Exception
      * @throws UnknownKeyTypeException
@@ -78,7 +80,7 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
                    int amt_of_mem
     ) throws JoinsException, IndexException, InvalidTupleSizeException, InvalidTypeException, PageNotReadException, TupleUtilsException, PredEvalException, SortException, LowMemException, UnknowAttrType, UnknownKeyTypeException, Exception
     {
-
+        // Initialized global variables with parameters
         _in1 = new AttrType[in1.length];
         System.arraycopy(in1,0,_in1,0,in1.length);
         in1_len = len_in1;
@@ -97,14 +99,13 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
         System.arraycopy(p_list,0,pref_list,0,p_list.length);
         pref_list_length = p_list_len;
 
-        // ADDED
+
         skyline_mainm = new ArrayList<Tuple>();
         mainm_insert_time = new ArrayList<Integer>();
         tempfile_insert_time = new ArrayList<Integer>();
 
-
+        // create two heapfiles temp as a spill file and temp1 to allow switching the pointers
         try {
-            //hf = new Heapfile(relationName);
             temp = new Heapfile(null);
             temp1 = new Heapfile(null);
         }
@@ -137,60 +138,31 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
         while((outer_tuple=file_iterator.get_next()) != null)
         {
 
-            float mine = outer_tuple.getFloFld(1);
-            float mine1 = (float) .9998579;
-            if( mine == mine1 ){
-                boolean foundit = true;
-                //for(int k = 0; k < skyline_mainm.size(); k++){
-                //  System.out.print("Skyline: " + skyline_mainm.get(k));
-                //}
-            }
-
             outer_tuple_insert = false;
             dominated = false;
 
-/*            System.out.println("The read tuple is");
-            outer_tuple.print(_in1);*/
 
             for(int i=0; i<skyline_mainm.size(); i++)
             {
-/*                System.out.println("The skyline_main_mem tuple is");
-                skyline_mainm.get(i).print(_in1);*/
-
+                // check if the     is dominated
                 if(TupleUtils.dominates(outer_tuple, _in1, skyline_mainm.get(i),
                         _in1, (short)in1_len, t1_str_sizescopy, pref_list, pref_list_length))
                 {
-                    if( mine == mine1 ){
-                        boolean foundit = true;
-                        for(int k = 0; k < skyline_mainm.size(); k++){
-                            skyline_mainm.get(k).print(_in1);
-                        }
-                    }
                     //Tuple read from temp_heap_file is inserted to main mem,
                     //those that are dominated are removed from main mem
                     skyline_mainm.remove(i);
                     mainm_insert_time.remove(i);
                     i--;
-/*                    if(!outer_tuple_insert)
-                    {
-                        time++;
-                        t = new Tuple(outer_tuple);
-                        skyline_mainm.add(t);
-                        mainm_insert_time.add(time);
-                        outer_tuple_insert = true;
-                    }*/
-
                 }
-
+                // check if the     is dominated
                 else if(TupleUtils.dominates(skyline_mainm.get(i), _in1, outer_tuple,
                         _in1, (short)in1_len, t1_str_sizescopy, pref_list, pref_list_length))
                 {
                     dominated = true;
-                    //break;
                 }
             }
 
-            if(dominated==false /*&& outer_tuple_insert==false*/) {
+            if(dominated==false ) {
                 //check whether there is space in main_memory, else insert into temp
 
                 if(skyline_mainm.size() < max_tuples_mainm)
@@ -200,19 +172,16 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
                     skyline_mainm.add(t);
                     time++;
                     mainm_insert_time.add(time);
-                    //mainm_comp_disk.add(0);
                 }
 
                 else {
                     try {
                         outer_tuple.print(_in1);
-                        /* RID rid = */
                         System.out.println(outer_tuple.getLength());
                         temp.insertRecord(outer_tuple.returnTupleByteArray());
                         time++;
                         tempfile_insert_time.add(time);
                     }
-
                     catch (Exception e) {
                         System.err.println("*** error in Heapfile.insertRecord() ***");
                         e.printStackTrace();
@@ -299,26 +268,6 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
 
                 for(int i=0; i<skyline_mainm.size(); i++)
                 {
- /*                   if(tempfile_insert_time.size() == 0){
-                        try {
-                            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                            outer_tuple.print(_in1);
-                        }
-                        catch (Exception e) {
-                            System.err.println("*** error in Heapfile.insertRecord() ***");
-                            e.printStackTrace();
-                        }
-                        outer_tuple = tempScan.getNext(rid);
-                        try {
-                            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                            outer_tuple.print(_in1);
-                        }
-                        catch (Exception e) {
-                            System.err.println("*** error in Heapfile.insertRecord() ***");
-                            e.printStackTrace();
-                        }
-
-                    }*/
 
                     // Check whether the main memory cand timestamp is lesser than that from disk
                     if(mainm_insert_time.get(i)<tempfile_insert_time.get(0))
@@ -328,8 +277,6 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
                         mainm_insert_time.remove(i);
                         tempScan.position(rid_prev);
                         get_next_returned = true;
-                        //tempScan.closescan();
-                        //tempScan = new Scan(temp);
                         return t;
                     }
 
@@ -340,49 +287,25 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
                         //those that are dominated are removed from main mem
                         skyline_mainm.remove(i);
                         mainm_insert_time.remove(i);
-/*
-                        if(!outer_tuple_insert)
-                        {
-                            time++;
-                            Tuple t;
-                            t = new Tuple(outer_tuple);
-                            skyline_mainm.add(t);
-                            //skyline_mainm.add(outer_tuple);
-                            mainm_insert_time.add(time);
-                            tempfile_insert_time.remove(0);
-                            outer_tuple_insert = true;
-                        }
-
- */
-
                     }
-
                     else if(TupleUtils.dominates(skyline_mainm.get(i), _in1, outer_tuple,
                             _in1, (short)in1_len, t1_str_sizescopy, pref_list, pref_list_length))
                     {
                         dominated = true;
-                        //break;
                     }
                 }
 
-                if(dominated==false /*&& outer_tuple_insert==false*/) {
+                if(dominated==false) {
                     //check whether there is space in main_memory, else insert into temp
 
                     if(skyline_mainm.size() < max_tuples_mainm)
                     {
-                        //skyline_mainm.add(outer_tuple);
                         Tuple t;
                         t = new Tuple(outer_tuple);
                         skyline_mainm.add(t);
                         time++;
                         mainm_insert_time.add(time);
-
-                        //Just Trying out!
-                        //tempfile_insert_time.remove(0);
-
-                        //mainm_comp_disk.add(0);
                     }
-
                     else {
                         try {
                             temp1.insertRecord(outer_tuple.returnTupleByteArray());
@@ -398,7 +321,6 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
                 }
 
                 try {
-                //  temp.deleteRecord(rid);
                     tempfile_insert_time.remove(0);
                 }
                 catch (Exception e) {

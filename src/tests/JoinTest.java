@@ -246,11 +246,11 @@ class JoinsDriver implements GlobalConst {
       //NestedLoopsSky s =  new NestedLoopsSky(Ptypes, numOfColumns, x, am,
         //      "projectdata.in", pref_list, pref_list.length, numOfPages);
       //+++++++++ Uncomment to test SortFirstSky +++++++++++++++++++++++++++++++++++++++++
-      //SortFirstSky s =  new SortFirstSky(Ptypes, numOfColumns, x, am,
-        //      "projectdata.in", pref_list, pref_list.length, numOfPages);
+      SortFirstSky s =  new SortFirstSky(Ptypes, numOfColumns, x, am,
+              "projectdata.in", pref_list, pref_list.length, numOfPages);
       //+++++++++ Uncomment to test BlockNestedLoopsSky +++++++++++++++++++++++++++++++++++
-      BlockNestedLoopsSky s = new BlockNestedLoopsSky(Ptypes, numOfColumns, x, am,
-                    "projectdata.in", pref_list, pref_list.length, numOfPages);
+      //BlockNestedLoopsSky s = new BlockNestedLoopsSky(Ptypes, numOfColumns, x, am,
+        //            "projectdata.in", pref_list, pref_list.length, numOfPages);
       PCounter.printCounter();
       System.out.println("NestedLoopSky completed");
       t = new Tuple();
