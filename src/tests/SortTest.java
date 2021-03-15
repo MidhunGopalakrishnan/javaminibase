@@ -1,6 +1,10 @@
 package tests;
 
-import java.io.*; 
+import java.io.*;
+
+import btree.AddFileEntryException;
+import btree.ConstructPageException;
+import btree.GetFileEntryException;
 import global.*;
 import bufmgr.*;
 import diskmgr.*;
@@ -56,7 +60,7 @@ class SORTDriver extends TestDriver
     super("sorttest");
   }
 
-  public boolean runTests ()  {
+  public boolean runTests () throws IOException, AddFileEntryException, GetFileEntryException, ConstructPageException {
     
     System.out.println ("\n" + "Running " + testName() + " tests...." + "\n");
     
@@ -1324,8 +1328,7 @@ protected boolean test3()
 
 public class SortTest
 {
-  public static void main(String argv[])
-  {
+  public static void main(String argv[]) throws ConstructPageException, GetFileEntryException, AddFileEntryException, IOException {
     boolean sortstatus;
 
     SORTDriver sortt = new SORTDriver();

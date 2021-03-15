@@ -132,7 +132,7 @@ public class BTSortedPage  extends HFPage{
 	     key_iplus1=BT.getEntryFromBytes(getpage(), getSlotOffset(i-1), 
 					     getSlotLength(i-1), keyType, nType).key;
 	     
-	     if (BT.keyCompare(key_i, key_iplus1) < 0)
+	     if (BT.keyCompare(key_i, key_iplus1) > 0)
 	       {
 	       // switch slots:
 		 int ln, off;

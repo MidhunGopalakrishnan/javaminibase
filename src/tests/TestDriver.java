@@ -2,6 +2,10 @@ package tests;
 import java.io.*;
 import java.util.*;
 import java.lang.*;
+
+import btree.AddFileEntryException;
+import btree.ConstructPageException;
+import btree.GetFileEntryException;
 import chainexception.*;
 
 //    Major Changes:
@@ -72,7 +76,7 @@ public class TestDriver {
   /** 
    * @return whether the test has completely successfully 
    */
-  protected boolean test2 () { return true; }
+  protected boolean test2 () throws IOException, AddFileEntryException, GetFileEntryException, ConstructPageException { return true; }
 
   /** 
    * @return whether the test has completely successfully 
@@ -110,7 +114,7 @@ public class TestDriver {
    *
    * @return a boolean value indicates whether ALL the tests have passed
    */
-  public boolean runTests ()  {
+  public boolean runTests () throws IOException, AddFileEntryException, GetFileEntryException, ConstructPageException {
     
     System.out.println ("\n" + "Running " + testName() + " tests...." + "\n");
     
@@ -170,7 +174,7 @@ public class TestDriver {
     return _pass;
   }
 
-  protected boolean runAllTests() {
+  protected boolean runAllTests() throws ConstructPageException, GetFileEntryException, AddFileEntryException, IOException {
 
     boolean _passAll = OK;
 
