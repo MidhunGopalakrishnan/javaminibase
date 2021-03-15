@@ -198,10 +198,10 @@ public class NestedLoopsSky  extends Iterator
 
             if (inner_tuple == null)
             {
-                System.out.println("New Skyline element found");
+                //System.out.println("New Skyline element found");
                 float[] output = new float[in1_len];
                 float values;
-                outer_tuple.print(_in1);
+                //outer_tuple.print(_in1);
                 return outer_tuple;
             }
 

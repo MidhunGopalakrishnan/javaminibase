@@ -71,27 +71,27 @@ public class TestDriver {
   /** 
    * @return whether the test has completely successfully 
    */
-  protected boolean test1 () { return true; }
+  protected boolean test1 () throws Exception { return true; }
   
   /** 
    * @return whether the test has completely successfully 
    */
-  protected boolean test2 () throws IOException, AddFileEntryException, GetFileEntryException, ConstructPageException { return true; }
+  protected boolean test2 () throws IOException, AddFileEntryException, GetFileEntryException, ConstructPageException, Exception { return true; }
 
   /** 
    * @return whether the test has completely successfully 
    */
-  protected boolean test3 () { return true; }
+  protected boolean test3 () throws Exception { return true; }
 
   /** 
    * @return whether the test has completely successfully 
    */
-  protected boolean test4 () { return true; }
+  protected boolean test4 () throws Exception { return true; }
 
   /** 
    * @return whether the test has completely successfully 
    */
-  protected boolean test5 () { return true; }
+  protected boolean test5 () throws Exception { return true; }
 
   /** 
    * @return whether the test has completely successfully 
@@ -156,7 +156,12 @@ public class TestDriver {
     }
 
     //Run the tests. Return type different from C++
-    boolean _pass = runAllTests();
+    boolean _pass = false;
+    try {
+      _pass = runAllTests();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
 
     //Clean up again
     try {
@@ -174,7 +179,7 @@ public class TestDriver {
     return _pass;
   }
 
-  protected boolean runAllTests() throws ConstructPageException, GetFileEntryException, AddFileEntryException, IOException {
+  protected boolean runAllTests() throws Exception {
 
     boolean _passAll = OK;
 
@@ -198,8 +203,8 @@ public class TestDriver {
     if (!test1()) { _passAll = FAIL; }
     if (!test2()) { _passAll = FAIL; }
     if (!test3()) { _passAll = FAIL; }
-    if (!test4()) { _passAll = FAIL; }
-    if (!test5()) { _passAll = FAIL; }
+    //if (!test4()) { _passAll = FAIL; }
+    //if (!test5()) { _passAll = FAIL; }
     if (!test6()) { _passAll = FAIL; }
 
     return _passAll;

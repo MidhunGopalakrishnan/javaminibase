@@ -44,35 +44,35 @@ public class BTreeSortedSky {
         IndexScan iscan = new IndexScan(new IndexType(IndexType.B_Index), relationName, "BTreeSortedIndex",
                 in1, t1_str_sizes, 5, 5, projlist, expr, 5, false);
 
-        RID rid;
-        Heapfile f = null;
-        try {
-            f = new Heapfile("btreesortedsky.in");
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        while((t=iscan.get_next())!=null){
-            t.print(in1);
-            try {
-                f.insertRecord(t.returnTupleByteArray());
-            }catch (Exception e){
-                System.err.println("*** error in Heapfile.insertRecord() ***");
-                //status = FAIL;
-                e.printStackTrace();
-            }
-        }
-
-        //create iterator
-        FileScan am = null;
-        try {
-            am = new FileScan("btreesortedsky.in", in1, t1_str_sizes, (short) 5, (short) 5, projlist, null);
-            PCounter.printCounter();
-            System.out.println("File Scan completed");
-        } catch (Exception e) {
-            System.err.println("" + e);
-        }
+//        RID rid;
+//        Heapfile f = null;
+//        try {
+//            f = new Heapfile("btreesortedsky.in");
+//        }
+//        catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//
+//        while((t=iscan.get_next())!=null){
+//           // t.print(in1);
+//            try {
+//                f.insertRecord(t.returnTupleByteArray());
+//            }catch (Exception e){
+//                System.err.println("*** error in Heapfile.insertRecord() ***");
+//                //status = FAIL;
+//                e.printStackTrace();
+//            }
+//        }
+//
+//        //create iterator
+//        FileScan am = null;
+//        try {
+//            am = new FileScan("btreesortedsky.in", in1, t1_str_sizes, (short) 5, (short) 5, projlist, null);
+//           // PCounter.printCounter();
+//            System.out.println("File Scan completed");
+//        } catch (Exception e) {
+//            System.err.println("" + e);
+//        }
 
         //call nestedloopsky
 
@@ -86,8 +86,8 @@ public class BTreeSortedSky {
         BlockNestedLoopsSky bnl = new BlockNestedLoopsSky( in1,
                 5,
                 t1_str_sizes,
-                am,  // This will be the filescan iterator that returns records one by one.
-                "btreesortedsky.in",
+                iscan,  // This will be the filescan iterator that returns records one by one.
+                relationName,
                 pref_list, //Preference List
                 pref_list_length, //Preference List Length
                 n_pages);

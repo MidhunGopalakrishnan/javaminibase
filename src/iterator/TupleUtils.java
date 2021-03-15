@@ -223,9 +223,9 @@ public class TupleUtils
 		float tupleSum =0;
 		for (int i = 0; i < pref_list_length; i++) {
 			if (type1[pref_list[i]].toString().equals("attrInteger")) {
-				tupleSum+= (float) t1.getIntFld(pref_list[i]);
+				tupleSum+= (float) t1.getIntFld(pref_list[i]+1);
 			} else if (type1[pref_list[i]].toString().equals("attrReal")) {
-				tupleSum+= t1.getFloFld(pref_list[i]);
+				tupleSum+= t1.getFloFld(pref_list[i]+1);
 			} else if (type1[pref_list[i]].toString().equals("attrString")) {
 				//TODO: currently no support for String. Add code as needed
 			}

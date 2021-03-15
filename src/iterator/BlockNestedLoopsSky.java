@@ -123,7 +123,7 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
 
         int tuple_size = t.size();
         int tup_per_page = MINIBASE_PAGESIZE / tuple_size;
-        max_tuples_mainm = tup_per_page * (n_buf_pgs-1);
+        max_tuples_mainm = tup_per_page * (n_buf_pgs-2);
         time=0;
 
 
@@ -176,8 +176,8 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
 
                 else {
                     try {
-                        outer_tuple.print(_in1);
-                        System.out.println(outer_tuple.getLength());
+                       // outer_tuple.print(_in1);
+                       // System.out.println(outer_tuple.getLength());
                         temp.insertRecord(outer_tuple.returnTupleByteArray());
                         time++;
                         tempfile_insert_time.add(time);

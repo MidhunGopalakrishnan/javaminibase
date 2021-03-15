@@ -104,9 +104,14 @@ class SORTDriver extends TestDriver
     }
 
     //Run the tests. Return type different from C++
-    boolean _pass = runAllTests();
+      boolean _pass = false;
+      try {
+          _pass = runAllTests();
+      } catch (Exception e) {
+          e.printStackTrace();
+      }
 
-    //Clean up again
+      //Clean up again
     try {
       Runtime.getRuntime().exec(remove_logcmd);
       Runtime.getRuntime().exec(remove_dbcmd);

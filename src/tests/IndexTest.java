@@ -103,7 +103,12 @@ class IndexDriver extends TestDriver
     }
 
     //Run the tests. Return type different from C++
-    boolean _pass = runAllTests();
+    boolean _pass = false;
+    try {
+      _pass = runAllTests();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
 
     //Clean up again
     try {

@@ -157,7 +157,7 @@ public class BTreeSky {
         FileScan am = null;
         try {
             am = new FileScan("btreesky.in", in1, t1_str_sizes, (short) 5, (short) 5, projlist, null);
-            PCounter.printCounter();
+           // PCounter.printCounter();
             System.out.println("File Scan completed");
         } catch (Exception e) {
             System.err.println("" + e);
