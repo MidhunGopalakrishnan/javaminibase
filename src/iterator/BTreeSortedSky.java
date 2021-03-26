@@ -3,13 +3,17 @@ package iterator;
 import btree.IndexFile;
 import diskmgr.PCounter;
 import global.AttrType;
+import global.GlobalConst;
 import global.IndexType;
 import global.RID;
 import heap.Heapfile;
 import heap.Tuple;
+import index.IndexException;
 import index.IndexScan;
 
-public class BTreeSortedSky {
+import java.io.IOException;
+
+public class BTreeSortedSky extends Iterator implements GlobalConst  {
 
     public BTreeSortedSky (AttrType[] in1, int len_in1, short[] t1_str_sizes, Iterator am1, java.lang.String
             relationName, int[] pref_list, int pref_list_length, IndexFile index_file_list, int n_pages)
@@ -99,6 +103,27 @@ public class BTreeSortedSky {
             e.printStackTrace();
         }
         bnl.close();
+        iscan.close();
+    }
+
+    public Tuple get_next()
+    {
+        return null;
+    }
+
+    //@Override
+    public void close() throws IOException, JoinsException, SortException, IndexException {
+
+        if (!closeFlag) {
+
+            try {
+                //TODO : if we need to close anything
+            }catch (Exception e) {
+                throw new JoinsException(e, "BTreeSortedSky.java: error in closing iterator.");
+            }
+            closeFlag = true;
+        }
+
     }
 
 }

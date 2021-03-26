@@ -58,8 +58,8 @@ public class TestDriver {
     //To port it to a different platform, get "user.name" should
     //still work well because this feature is not meant to be UNIX
     //dependent. 
-    dbpath = "/tmp/"+nameRoot+System.getProperty("user.name")+".minibase-db"; 
-    logpath = "/tmp/"+nameRoot +System.getProperty("user.name")+".minibase-log"; 
+    dbpath = "/tmp/"+nameRoot+System.getProperty("user.name")+".minibasev3-db";
+    logpath = "/tmp/"+nameRoot +System.getProperty("user.name")+".minibasev3-log";
   }
 
   /**
@@ -96,7 +96,7 @@ public class TestDriver {
   /** 
    * @return whether the test has completely successfully 
    */
-  protected boolean test6 () { return true; }
+  protected boolean test6 () throws Exception { return true; }
 
   /** 
    * @return <code>String</code> object which contains the name of the test
@@ -200,11 +200,11 @@ public class TestDriver {
     //the logged error types. 
 
     //Running test1() to test6()
-    if (!test1()) { _passAll = FAIL; }
-    if (!test2()) { _passAll = FAIL; }
-    if (!test3()) { _passAll = FAIL; }
-    //if (!test4()) { _passAll = FAIL; }
-    //if (!test5()) { _passAll = FAIL; }
+//    if (!test1()) { _passAll = FAIL; }
+//    if (!test2()) { _passAll = FAIL; }
+//    if (!test3()) { _passAll = FAIL; }
+//    if (!test4()) { _passAll = FAIL; }
+//    if (!test5()) { _passAll = FAIL; }
     if (!test6()) { _passAll = FAIL; }
 
     return _passAll;

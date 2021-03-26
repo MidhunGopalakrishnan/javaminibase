@@ -1002,7 +1002,7 @@ public class Heapfile implements Filetype,  GlobalConst {
     return tmpId;
 
   } // end of newPage
-
+ //TODO : mkg changed it to public. change it back to private
   private PageId get_file_entry(String filename)
     throws HFDiskMgrException {
 
