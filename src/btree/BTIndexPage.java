@@ -121,12 +121,12 @@ public class BTIndexPage extends BTSortedPage{
 	  throw new IndexFullDeleteException(null, "No records found");
 	
 	
-	if ( BT.keyCompare(key, entry.key)<0 )  
+	if ( BT.keyCompare(key, entry.key) >0 )
 	  //it is supposed to not smaller than first key
 	  throw new IndexFullDeleteException(null, "First key is bigger");
 	
 	
-	while (BT.keyCompare(key, entry.key) > 0) {
+	while (BT.keyCompare(key, entry.key) < 0) {
 	  entry = getNext(rid );
 	  if (entry == null)
             break;
@@ -165,7 +165,7 @@ public class BTIndexPage extends BTSortedPage{
 	  entry= BT.getEntryFromBytes( getpage(),getSlotOffset(i), 
 				       getSlotLength(i), keyType, NodeType.INDEX);
 	  
-	  if (BT.keyCompare(key, entry.key) >= 0)
+	  if (BT.keyCompare(key, entry.key) <= 0)
 	    {
 	      return ((IndexData)entry.data).getData();
 	    }
@@ -302,7 +302,7 @@ public class BTIndexPage extends BTSortedPage{
 	for (i=getSlotCnt()-1; i >= 0; i--) {
 	  entry=BT.getEntryFromBytes(getpage(), getSlotOffset(i),
 				     getSlotLength(i), keyType , NodeType.INDEX);
-	  if (BT.keyCompare(key, entry.key)>=0) {
+	  if (BT.keyCompare(key, entry.key)<=0) {
 	    if (i != 0) { 
               entry=BT.getEntryFromBytes(getpage(), getSlotOffset(i-1),
 					 getSlotLength(i-1), keyType, NodeType.INDEX);
@@ -377,7 +377,7 @@ public class BTIndexPage extends BTSortedPage{
 	  entry=BT.getEntryFromBytes(getpage(),getSlotOffset(i), 
 				     getSlotLength(i), keyType, NodeType.INDEX);
 	  
-	  if (BT.keyCompare(key, entry.key) >= 0) {
+	  if (BT.keyCompare(key, entry.key) <= 0) {
 	    return entry;
 	  }
         }

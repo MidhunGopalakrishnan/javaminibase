@@ -300,7 +300,7 @@ class IndexDriver extends TestDriver
       //BTreeSky testing
       short[] x = {};
       BTreeSky bts = new BTreeSky(attrType, numOfColumns, x, am, "test1.in",
-              pref_list, pref_list.length, BTreeFileList, numOfPages,f);
+              pref_list, pref_list.length, BTreeFileList, numOfPages,f,numOfColumns);
     }
     catch (Exception e)
     {

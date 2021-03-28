@@ -13,7 +13,7 @@ import java.util.*;
 class SkyLineTestDriver extends TestDriver
         implements GlobalConst {
 
-    private static short REC_LEN1 = 50;
+    private static short REC_LEN1 = 4;
     String heapFileName = "projecttestdata.in";
     Heapfile f = null;
     int numOfColumns = 0;
@@ -386,24 +386,23 @@ class SkyLineTestDriver extends TestDriver
         short[] x = {}; // blank since we assume there are no strings
 
 
-        // create an scan on the heapfile
+        // create an scan on the heapfile. Don't use file scan. We need PageNo and SlotNo correctly.
         Scan scan = null;
 
         try {
             scan = new Scan(f);
         } catch (Exception e) {
-            //status = FAIL;
             e.printStackTrace();
             Runtime.getRuntime().exit(1);
         }
 
+        //get the preference list
         int[] preflist = new int[prefListTemp.size()];
 
         for (int i = 0; i < prefListTemp.size(); i++) {
             preflist[i] = prefListTemp.get(i);
         }
 
-        //ArrayList<BTreeFile> BTreeFileList = new ArrayList<>();
         BTreeFile[] BTreeFileList = new BTreeFile[preflist.length];
         AttrType[] Ptypes = new AttrType[numOfColumns];
         for (int k = 0; k < numOfColumns; k++) {
@@ -411,13 +410,13 @@ class SkyLineTestDriver extends TestDriver
         }
 
         short[] Psizes = {};
-        //new code : only scan data file once
+
+        //only scan data file once to reduce number of reads
         try {
-            //create index files for all pref attributes
+            //create index files for all pref attributes in one shot
 
             Tuple temp = null;
             Tuple t = new Tuple();
-            //PageId pageno=new PageId();
             try {
                 t.setHdr((short) numOfColumns, Ptypes, Psizes);
             } catch (Exception e) {
@@ -425,46 +424,29 @@ class SkyLineTestDriver extends TestDriver
                 e.printStackTrace();
             }
             RID rid = new RID();
-            PageId pageno = new PageId();
-            pageno.pid = 0;
-            SystemDefs.JavabaseDB.allocate_page(pageno, preflist.length);
             for (int i = 0; i < preflist.length; i++) {
-                if (SystemDefs.JavabaseDB.get_file_entry("BTreeIndex" + preflist[i]) != null) {
-                    SystemDefs.JavabaseDB.delete_file_entry("BTreeIndex" + preflist[i]);
-                }
-                BTreeFile btf = new BTreeFile("BTreeIndex" + preflist[i], AttrType.attrInteger, REC_LEN1, 1/*delete*/);
-                //BTreeFileList.add(btf);
-                if (SystemDefs.JavabaseDB.get_file_entry("BTreeIndex" + preflist[i]) == null) {
-                    SystemDefs.JavabaseDB.add_file_entry("BTreeIndex" + preflist[i], pageno);
-                }
+                BTreeFile btf = new BTreeFile("BTreeIndexFile" + preflist[i], AttrType.attrInteger, REC_LEN1, 1/*delete*/);
                 BTreeFileList[i] = btf;
             }
             KeyClass key;
-            int count = 0;
-            rid = new RID();
-            RID keyRID = null;
             while ((temp = scan.getNext(rid)) != null) {
-                count++;
-                System.out.println();
-                System.out.print("Processing record number : " + count + " Values : ");
                 t.tupleCopy(temp);
+//                System.out.print(" RID PageNo : "+rid.pageNo+ " SlotNo: "+ rid.slotNo);
+//                t.print(Ptypes);
+
                 // loop and add to all index files
                 try {
                     for (int k = 0; k < preflist.length; k++) {
-                        t.print(Ptypes);
                         float floatkey = (float) ((t.getFloFld(preflist[k] + 1)) * Math.pow(10, 7));
                         int intKey = (int) floatkey;
-                        System.out.print(intKey + " ");
                         key = new IntegerKey(intKey);
-                        pageno.pid = intKey % 500;
-                        keyRID = new RID(pageno, intKey % 500);
-                        BTreeFileList[k].insert(key, keyRID);
+                        BTreeFileList[k].insert(key, rid);
                     }
-                    // rid = new RID();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
+           // BT.printAllLeafPages(BTreeFileList[0].getHeaderPage());
             scan.closescan();
         } catch (Exception e) {
             e.printStackTrace();
@@ -475,7 +457,9 @@ class SkyLineTestDriver extends TestDriver
                 BTreeFileList[k].close();
             }
         }
+        System.out.println("Read/writes after Index Files based on preference attributes are created and data is inserted");
         PCounter.printCounter();
+
 
         try {
             FldSpec[] Pprojection = new FldSpec[numOfColumns];
@@ -483,28 +467,16 @@ class SkyLineTestDriver extends TestDriver
                 Pprojection[i] = new FldSpec(new RelSpec(RelSpec.outer), i + 1);
             }
 
-//            try {
-//                am = new FileScan(heapFileName, Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
-//                PCounter.printCounter();
-//                System.out.println("File Scan completed");
-//            } catch (Exception e) {
-//                System.err.println("" + e);
-//            }
-
-            //BTreeSky testing
             BTreeSky bts = new BTreeSky(Ptypes, numOfColumns, x, am, heapFileName,
-                    preflist, preflist.length, BTreeFileList, numOfPages, f);
+                    preflist, preflist.length, BTreeFileList, numOfPages, f,numOfColumns);
             bts.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        // close the file scan
-        scan.closescan();
-        //am.close();
-
+        System.out.println("Read/Writes after BTreeSky call");
         PCounter.printCounter();
-        //return status;
+
         // close all index files
         for (int i = 0; i < BTreeFileList.length; i++) {
             BTreeFileList[i].close();
@@ -543,11 +515,11 @@ class SkyLineTestDriver extends TestDriver
 
         short[] Psizes = {};
 
-        BTreeFile btf = new BTreeFile("BTreeSortedIndex", AttrType.attrString, REC_LEN1, 1/*delete*/);
+        BTreeFile btf = new BTreeFile("BTreeSortedIndex", AttrType.attrInteger, REC_LEN1, 1/*delete*/);
         try {
 
             RID rid = new RID();
-            String key = null;
+            KeyClass key;
             Tuple temp = null;
 
             Tuple t = new Tuple();
@@ -558,65 +530,33 @@ class SkyLineTestDriver extends TestDriver
                 e.printStackTrace();
             }
 
-
-            try {
-                temp = scan.getNext(rid);
-            } catch (Exception e) {
-                //status = FAIL;
-                e.printStackTrace();
-            }
-            while (temp != null) {
+            while ((temp = scan.getNext(rid)) != null) {
                 t.tupleCopy(temp);
                 //t.print(attrType);
 
                 try {
-                    key = String.valueOf(TupleUtils.computeTupleSumOfPrefAttrs(t, Ptypes, (short) numOfColumns, Psizes, preflist, preflist.length));
+                    float floatKey = (float) ((float)(TupleUtils.computeTupleSumOfPrefAttrs(t, Ptypes, (short) numOfColumns, Psizes, preflist, preflist.length))*Math.pow(10, 7));
+                    int intKey = (int) floatKey;
+                    key = new IntegerKey(intKey);
+                    btf.insert(key, rid);
                 } catch (Exception e) {
                     //status = FAIL;
                     e.printStackTrace();
                 }
-
-                try {
-                    btf.insert(new StringKey(key), rid);
-                } catch (Exception e) {
-                    //status = FAIL;
-                    e.printStackTrace();
-                }
-
-                try {
-                    temp = scan.getNext(rid);
-                } catch (Exception e) {
-                    //status = FAIL;
-                    e.printStackTrace();
-                }
-            }
-            //reset scan so that we can create index on next preference attribute
-            try {
-                scan = new Scan(f);
-            } catch (Exception e) {
-                //status = FAIL;
-                e.printStackTrace();
-                Runtime.getRuntime().exit(1);
             }
         } catch (Exception e) {
             //status = FAIL;
             e.printStackTrace();
             Runtime.getRuntime().exit(1);
         }
+        //BT.printAllLeafPages(btf.getHeaderPage());
 
         try {
             FldSpec[] Pprojection = new FldSpec[numOfColumns];
             for (int i = 0; i < numOfColumns; i++) {
                 Pprojection[i] = new FldSpec(new RelSpec(RelSpec.outer), i + 1);
             }
-
-            try {
-                am = new FileScan(heapFileName, Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
-                PCounter.printCounter();
-                System.out.println("File Scan completed");
-            } catch (Exception e) {
-                System.err.println("" + e);
-            }
+            //am = new FileScan(heapFileName, Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
 
             //BTreeSky testing
             BTreeSortedSky bts = new BTreeSortedSky(Ptypes, numOfColumns, x, am, heapFileName, preflist, preflist.length, btf, numOfPages);
@@ -721,6 +661,14 @@ class SkyLineTestDriver extends TestDriver
         KeyClass key;
         BTreeFile[] BTreeFileList = new BTreeFile[preflist.length];
 
+//        FldSpec[] projlist = new FldSpec[Ptypes.length];
+//        RelSpec rel = new RelSpec(RelSpec.outer);
+//        for (int j=0;j < Ptypes.length;j++){
+//            projlist[j] = new FldSpec(rel,j+1);
+//        }
+//
+//        FileScan fileScan = new FileScan(heapFileName, Ptypes, Psizes, (short) numOfColumns, numOfColumns, projlist, null);
+
         try {
             scan = new Scan(f);
         } catch (Exception e) {
@@ -728,7 +676,8 @@ class SkyLineTestDriver extends TestDriver
             e.printStackTrace();
             Runtime.getRuntime().exit(1);
         }
-        BTreeFile btf = null;
+        //BTreeFile btf = null;
+
         for (int i = 0; i < preflist.length; i++) {
             RID rid = new RID();
             try {
@@ -738,8 +687,9 @@ class SkyLineTestDriver extends TestDriver
                 e.printStackTrace();
                 Runtime.getRuntime().exit(1);
             }
-
-            btf = new BTreeFile("SampleFiles" + preflist[i], AttrType.attrInteger, REC_LEN1, 1/*delete*/);
+            int k = i;
+            String indexFileName = "SampleFiles" + preflist[i];
+            BTreeFileList[i] = new BTreeFile(indexFileName, AttrType.attrInteger, 4, 1/*delete*/);
             Tuple temp = null;
             Tuple t = new Tuple();
 
@@ -752,22 +702,47 @@ class SkyLineTestDriver extends TestDriver
 
             while ((temp = scan.getNext(rid)) != null) {
                 t.tupleCopy(temp);
-                System.out.print("RID : " + rid + " PageNo: " + rid.pageNo + " SlotNo: " + rid.slotNo + " ");
-                t.print(Ptypes);
+                //System.out.print("RID : " + rid + " PageNo: " + rid.pageNo + " SlotNo: " + rid.slotNo + " ");
+                //t.print(Ptypes);
                 try {
                     float value = t.getFloFld(preflist[i] + 1);
                     double roundedValue = value * Math.pow(10, 7);
                     int intKey = (int) roundedValue;
                     key = new IntegerKey(intKey);
-                    btf.insert(key, rid);
+                    BTreeFileList[i].insert(key, rid);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-            BTreeFileList[i] = btf;
-            btf.close();
-            scan.closescan();
         }
+           // BTreeFileList[i] = btf;
+            //btf.close();
+            scan.closescan();
+            BT.printAllLeafPages(BTreeFileList[0].getHeaderPage());
+
+            try {
+                FldSpec[] Pprojection = new FldSpec[numOfColumns];
+                for (int kk = 0; kk < numOfColumns; kk++) {
+                    Pprojection[kk] = new FldSpec(new RelSpec(RelSpec.outer), kk + 1);
+                }
+
+//            try {
+//                am = new FileScan(heapFileName, Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
+//                PCounter.printCounter();
+//                System.out.println("File Scan completed");
+//            } catch (Exception e) {
+//                System.err.println("" + e);
+//            }
+                FileScan am = null;
+                short[] x = {};
+                //BTreeSky testing
+                BTreeSky bts = new BTreeSky(Ptypes, numOfColumns, x, am, heapFileName,
+                        preflist, preflist.length, BTreeFileList, numOfPages, f,numOfColumns);
+                bts.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
         //btf.close();
         //scan.closescan();
         return true;

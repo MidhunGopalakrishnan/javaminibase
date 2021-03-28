@@ -208,8 +208,6 @@ public class BTreeFile extends IndexFile
 	   IOException, 
 	   AddFileEntryException
     {
-      
-      
       headerPageId=get_file_entry(filename);
       if( headerPageId==null) //file not exist
 	{
@@ -710,7 +708,7 @@ public class BTreeFile extends IndexFile
 	
 	tmpEntry= newIndexPage.getFirst(firstRid);
 	
-	if (BT.keyCompare( upEntry.key, tmpEntry.key) >=0 )
+	if (BT.keyCompare( upEntry.key, tmpEntry.key) <=0 )
 	  {
 	    // the new data entry belongs on the new index page
 	    newIndexPage.insertKey( upEntry.key, 
@@ -879,7 +877,7 @@ public class BTreeFile extends IndexFile
 	      newLeafPage.deleteSortedRecord(firstRid);		
 	    }
 	  
-	  if (BT.keyCompare(key, undoEntry.key ) <  0) {
+	  if (BT.keyCompare(key, undoEntry.key ) >  0) {
 	    //undo the final record
 	    if ( currentLeafPage.available_space() < 
 		 newLeafPage.available_space()) {
@@ -896,7 +894,7 @@ public class BTreeFile extends IndexFile
 	  // will be inserted
 	  // on the newly allocated or on the old leaf page
 	  
-	  if (BT.keyCompare(key,undoEntry.key ) >= 0)
+	  if (BT.keyCompare(key,undoEntry.key ) <= 0)
 	    {                     
 	      // the new data entry belongs on the new Leaf page
 	      newLeafPage.insertRecord(key, rid);
@@ -1064,7 +1062,7 @@ public class BTreeFile extends IndexFile
 	prevpageno = pageIndex.getPrevPage();
 	curEntry= pageIndex.getFirst(startrid);
 	while ( curEntry!=null && lo_key != null 
-		&& BT.keyCompare(curEntry.key, lo_key) < 0) {
+		&& BT.keyCompare(curEntry.key, lo_key) > 0) {
 	  
           prevpageno = ((IndexData)curEntry.data).getData();
           curEntry=pageIndex.getNext(startrid);
@@ -1115,7 +1113,7 @@ public class BTreeFile extends IndexFile
 	// scan will unpin it when done
       }
       
-      while (BT.keyCompare(curEntry.key, lo_key) < 0) {
+      while (BT.keyCompare(curEntry.key, lo_key) > 0) {
 	curEntry= pageLeaf.getNext(startrid);
 	while (curEntry == null) { // have to go right
 	  nextpageno = pageLeaf.getNextPage();
@@ -1198,7 +1196,7 @@ public class BTreeFile extends IndexFile
 	  entry=leafPage.getFirst(new RID());
 	}
 	
-	if ( BT.keyCompare(key, entry.key) > 0 )
+	if ( BT.keyCompare(key, entry.key) < 0 )
 	  break;
 	
 	if( leafPage.delEntry(new KeyDataEntry(key, rid)) ==true) {
@@ -1355,7 +1353,7 @@ public class BTreeFile extends IndexFile
 	
 	RID delRid;    
 	// for all records with key equal to 'key', delete it if its rid = 'rid'
-	while((tmpEntry!=null) && (BT.keyCompare(key,tmpEntry.key)>=0)) { 
+	while((tmpEntry!=null) && (BT.keyCompare(key,tmpEntry.key)<=0)) {
           // WriteUpdateLog is done in the btleafpage level - to log the
           // deletion of the rid.
 	  

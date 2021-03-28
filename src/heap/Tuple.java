@@ -4,8 +4,10 @@ package heap;
 
 import java.io.*;
 import java.lang.*;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import global.*;
 
@@ -13,7 +15,23 @@ import global.*;
 public class Tuple implements GlobalConst{
 
 
- /** 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Tuple tuple = (Tuple) o;
+        return tuple_offset == tuple.tuple_offset && tuple_length == tuple.tuple_length && fldCnt == tuple.fldCnt && Arrays.equals(data, tuple.data) && Arrays.equals(fldOffset, tuple.fldOffset);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(tuple_offset, tuple_length, fldCnt);
+        result = 31 * result + Arrays.hashCode(data);
+        result = 31 * result + Arrays.hashCode(fldOffset);
+        return result;
+    }
+
+    /**
   * Maximum size of any tuple
   */
   public static final int max_size = MINIBASE_PAGESIZE;
