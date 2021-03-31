@@ -182,7 +182,7 @@ public class DB implements GlobalConst {
     try{
       fp.write(apage.getpage());
       // if writer is successful , increment writeCounter
-        PCounter.writeIncrement();
+        //PCounter.writeIncrement();
     }
     catch (IOException e) {
       throw new FileIOException(e, "DB file I/O error");

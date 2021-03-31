@@ -17,7 +17,7 @@ public class SortFirstSky  extends Iterator implements GlobalConst {
     private   short     t1_str_sizescopy[]; //UNCOMMENTED BLAKE
     private int         n_buf_pgs;          // # of buffer pages available.
     private boolean     done,               // Is the join complete
-                        get_from_outer;     // if TRUE, a tuple is got from outer
+            get_from_outer;     // if TRUE, a tuple is got from outer
     private Tuple       outer_tuple, inner_tuple;
     private Heapfile    hf;
     private Scan        inner;
@@ -31,6 +31,7 @@ public class SortFirstSky  extends Iterator implements GlobalConst {
     private int         first_time;
     private SortPref    sortPref;
     private   Heapfile  temp, temp1;
+    boolean heapFileDone;
     private   Scan      tempScan;
 
     private ArrayList<Tuple>    skyline_mainm;
@@ -104,7 +105,7 @@ public class SortFirstSky  extends Iterator implements GlobalConst {
 
         try {
             temp = new Heapfile(null);
-            temp1 = new Heapfile(null);
+            //temp1 = new Heapfile(null);
         }
         catch(Exception e) {
             throw new NestedLoopException(e, "Create new heapfile failed.");
@@ -174,7 +175,6 @@ public class SortFirstSky  extends Iterator implements GlobalConst {
             {
                 Tuple t = skyline_mainm.get(0);
                 skyline_mainm.remove(0);
-                mainm_insert_time.remove(0);
                 return t;
             }
 
@@ -187,77 +187,89 @@ public class SortFirstSky  extends Iterator implements GlobalConst {
         // Now we read all the records from the records file and fill them in main memory and tempfile
         boolean outer_tuple_insert,dominated;
 
-            while (true) {
+        while (true) {
 
-                if (file_read) {
-                    rid = new RID();
-                    outer_tuple = tempScan.getNext(rid);
-                }
+            if (file_read) {
+                rid = new RID();
+                outer_tuple = tempScan.getNext(rid);
+            }
 
-                else
-                    outer_tuple = sortPref.get_next();
+            else
+                outer_tuple = sortPref.get_next();
 
-                if (outer_tuple == null) {
-                    if (file_read == false)
-                        file_read = true;
+            if (outer_tuple == null) {
+                if (file_read == false)
+                    file_read = true;
 
+                break;
+            }
+
+            else if(outer_tuple != null && file_read == true)
+                outer_tuple.setHdr((short)in1_len, _in1, t1_str_sizescopy);
+            dominated = false;
+
+            for (int i = 0; i < skyline_mainm.size(); i++) {
+
+                if (TupleUtils.dominates(skyline_mainm.get(i), _in1, outer_tuple,
+                        _in1, (short) in1_len, t1_str_sizescopy, pref_list, pref_list_length)) {
+                    dominated = true;
                     break;
                 }
+            }
 
-                else if(outer_tuple != null && file_read == true)
-                    outer_tuple.setHdr((short)in1_len, _in1, t1_str_sizescopy);
-                dominated = false;
+            if (dominated == false) {
 
-                for (int i = 0; i < skyline_mainm.size(); i++) {
-                    
-                    if (TupleUtils.dominates(skyline_mainm.get(i), _in1, outer_tuple,
-                            _in1, (short) in1_len, t1_str_sizescopy, pref_list, pref_list_length)) {
-                        dominated = true;
-                        break;
-                    }
-                }
+                if (skyline_mainm.size() < max_tuples_mainm) {
 
-                if (dominated == false) {
-
-                    if (skyline_mainm.size() < max_tuples_mainm) {
-
-                        Tuple t = new Tuple(outer_tuple);
-                        skyline_mainm.add(t);
-                        return outer_tuple;
-                    } else {
-                        try {
-                            temp.insertRecord(outer_tuple.returnTupleByteArray());
-                        } catch (Exception e) {
-                            System.err.println("*** error in Heapfile.insertRecord() ***");
-                            e.printStackTrace();
-                        }
+                    Tuple t = new Tuple(outer_tuple);
+                    skyline_mainm.add(t);
+                    return outer_tuple;
+                } else {
+                    try {
+                        temp.insertRecord(outer_tuple.returnTupleByteArray());
+                    } catch (Exception e) {
+                        System.err.println("*** error in Heapfile.insertRecord() ***");
+                        e.printStackTrace();
                     }
                 }
             }
+        }
+
+        tempScan.closescan();
+        // deleting previous heap files which has been scanned
+        if(temp1!=null) {
+           temp1.deleteFile();
+
+        }
+
+            tempScan = new Scan(temp);
+
+        skyline_mainm.clear();   // remove all
+        RID rid = new RID();
+
+        if ((outer_tuple = tempScan.getNext(rid)) == null) {
+
+            diskdone = true;
             tempScan.closescan();
+            temp.deleteFile();
+            if (skyline_mainm.size() == 0) {
+                done = true;
+                return null;
+            }
+
+            Tuple t = skyline_mainm.get(0);
+            skyline_mainm.remove(0);
+            return t;
+
+        } else {
+            outer_tuple.setHdr((short)in1_len, _in1, t1_str_sizescopy);
+            skyline_mainm.add(outer_tuple);
+
+            // temp1 actually copies the old temp heap file reference which will be removed later
+            temp1 = temp;
             temp = new Heapfile(null);
-            skyline_mainm.clear();   // remove all
-            RID rid = new RID();
-
-            if ((outer_tuple = tempScan.getNext(rid)) == null) {
-
-                    diskdone = true;
-                    tempScan.closescan();
-                    if (skyline_mainm.size() == 0) {
-                        done = true;
-                        return null;
-                    }
-
-                    Tuple t = skyline_mainm.get(0);
-                    skyline_mainm.remove(0);
-                    return t;
-
-                } else {
-                    outer_tuple.setHdr((short)in1_len, _in1, t1_str_sizescopy);
-                    skyline_mainm.add(outer_tuple);
-                    tempScan = new Scan(temp);
-                    return outer_tuple;
-                }
+            return outer_tuple;
+        }
     }
 
     /**

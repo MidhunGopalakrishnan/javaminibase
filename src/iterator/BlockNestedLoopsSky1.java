@@ -21,7 +21,7 @@ import java.util.Arrays;
  */
 
 
-public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
+public class BlockNestedLoopsSky1 extends Iterator implements GlobalConst
 {
     private AttrType    _in1[];
     private   int       in1_len;
@@ -36,9 +36,8 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
     private   Tuple     outer_tuple, inner_tuple;
     private   Heapfile  hf, temp, temp1;
     private   Scan      tempScan;
-    private   int       temp_file_number_records_scanned;
 
-    private ArrayList<Tuple>    skyline_mainm, skyline_confirm;
+    private ArrayList<Tuple>    skyline_mainm;
     private ArrayList<Integer>  mainm_insert_time, tempfile_insert_time;
     private int                 time; // keeps track of insert times
     private int                 max_tuples_mainm;
@@ -71,7 +70,7 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
      * @throws IndexException
      * @throws JoinsException
      */
-    public BlockNestedLoopsSky( AttrType    in1[],
+    public BlockNestedLoopsSky1(AttrType    in1[],
                                 int     len_in1,
                                 short   t1_str_sizes[],
                                 Iterator     am1,
@@ -100,7 +99,7 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
         System.arraycopy(p_list,0,pref_list,0,p_list.length);
         pref_list_length = p_list_len;
 
-        skyline_confirm = new ArrayList<Tuple>();
+
         skyline_mainm = new ArrayList<Tuple>();
         mainm_insert_time = new ArrayList<Integer>();
         tempfile_insert_time = new ArrayList<Integer>();
@@ -145,7 +144,7 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
 
             for(int i=0; i<skyline_mainm.size(); i++)
             {
-                // check if the is dominated
+                // check if the     is dominated
                 if(TupleUtils.dominates(outer_tuple, _in1, skyline_mainm.get(i),
                         _in1, (short)in1_len, t1_str_sizescopy, pref_list, pref_list_length))
                 {
@@ -177,8 +176,8 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
 
                 else {
                     try {
-                        // outer_tuple.print(_in1);
-                        // System.out.println(outer_tuple.getLength());
+                       // outer_tuple.print(_in1);
+                       // System.out.println(outer_tuple.getLength());
                         temp.insertRecord(outer_tuple.returnTupleByteArray());
                         time++;
                         tempfile_insert_time.add(time);
@@ -192,7 +191,6 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
         }
 
         tempScan = new Scan(temp);
-        temp_file_number_records_scanned=0;
 
     }
 
@@ -247,7 +245,8 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
             done = true;
         }
 
-        RID rid = new RID();
+        RID rid;
+        tempScan = new Scan(temp);
 
         do
         {
@@ -255,82 +254,55 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
             boolean outer_tuple_insert = false;
             boolean dominated = false;
 
-            // if(get_next_returned)
-            // {
-            //     rid = new RID(rid_prev.pageNo,rid_prev.slotNo);
-            //     get_next_returned = false;
-            // }
-            // else {
-            //     rid = new RID();
-            //     rid_prev = new RID(rid.pageNo,rid.slotNo); // Pointless doing this since get_next only sets rid
-            // }
-
-
-            if(!skyline_confirm.isEmpty())
+            if(get_next_returned)
             {
-                Tuple t = skyline_confirm.get(0);
-                skyline_confirm.remove(0);
-                return t;
+                rid = new RID(rid_prev.pageNo,rid_prev.slotNo);
+                get_next_returned = false;
+            }
+            else {
+                rid = new RID();
+                rid_prev = new RID(rid.pageNo,rid.slotNo);
             }
 
+            java.util.Iterator skylineIterator = skyline_mainm.iterator();
+            java.util.Iterator mainmIterator = mainm_insert_time.iterator();
+            java.util.Iterator tempIterator = tempfile_insert_time.iterator();
 
             while((outer_tuple=tempScan.getNext(rid)) != null)
-            {
-
+            {   // get rid of record corresponding to the outer tuple
+                System.out.println("RID Page No: "+ rid.pageNo + " slot noe : "+ rid.slotNo);
+                System.out.println("Prev RID Page No: "+ rid_prev.pageNo + " slot no : "+ rid_prev.slotNo);
                 outer_tuple.setHdr((short)in1_len, _in1, t1_str_sizescopy);
 
-                dominated = false;
-
-                //We print to check where the value
-                //outer_tuple.print(_in1);
-
-                for(int i=0; i<skyline_mainm.size(); i++)
+                while(skylineIterator.hasNext())
+                //for(int i=0; i<skyline_mainm.size(); i++)
                 {
-
+                    Tuple skyline_mainmTuple = (Tuple)skylineIterator.next();;
                     // Check whether the main memory cand timestamp is lesser than that from disk
-                    if(mainm_insert_time.get(i)<tempfile_insert_time.get(0))
+                    if(((Integer)mainmIterator.next())<tempfile_insert_time.get(0))
+                   // if(mainm_insert_time.get(i)<tempfile_insert_time.get(0))
                     {
-                        Tuple t = skyline_mainm.get(i);
-                        skyline_mainm.remove(i);
-                        mainm_insert_time.remove(i);
-
-                        // if(temp_file_number_records_scanned == 0)
-                        // {
-                        //     tempScan.closescan();
-                        //     tempScan = new Scan(temp);
-                        // }
-
-                        // else
-                        // {
-                        //     tempScan.position(rid);
-                        //     get_next_returned = true;
-                        // }
-
-                        // return t;
-
-                        skyline_confirm.add(t);
-                        i--;
+                        skylineIterator.remove();
+                        mainmIterator.remove();
+                       // tempScan.position(rid_prev);
+                        get_next_returned = true;
+                        return skyline_mainmTuple;
                     }
 
-                    else if(TupleUtils.dominates(outer_tuple, _in1, skyline_mainm.get(i),
+                    if(TupleUtils.dominates(outer_tuple, _in1, skyline_mainmTuple,
                             _in1, (short)in1_len, t1_str_sizescopy, pref_list, pref_list_length))
                     {
                         //Tuple read from temp_heap_file is inserted to main mem,
                         //those that are dominated are removed from main mem
-                        skyline_mainm.remove(i);
-                        mainm_insert_time.remove(i);
-                        i--;
+                        skylineIterator.remove();
+                        mainmIterator.remove();
                     }
-
-                    else if(TupleUtils.dominates(skyline_mainm.get(i), _in1, outer_tuple,
+                    else if(TupleUtils.dominates(skyline_mainmTuple, _in1, outer_tuple,
                             _in1, (short)in1_len, t1_str_sizescopy, pref_list, pref_list_length))
                     {
-                        //skyline_mainm.get(i).print(_in1);
                         dominated = true;
                     }
                 }
-
-                //temp_file_number_records_scanned++;
 
                 if(dominated==false) {
                     //check whether there is space in main_memory, else insert into temp
@@ -357,18 +329,20 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
                     }
                 }
 
-
-                tempfile_insert_time.remove(0);
+                try {
+                    //tempfile_insert_time.remove(0);
+                    if(tempIterator.hasNext()) {
+                        tempIterator.next();
+                        tempIterator.remove();
+                    }
+                }
+                catch (Exception e) {
+                    System.err.println ("*** Error deleting record \n");
+                    e.printStackTrace();
+                }
 
                 rid_prev = new RID(rid.pageNo,rid.slotNo);
                 rid = new RID();
-
-                if(!skyline_confirm.isEmpty())
-                {
-                    Tuple t = skyline_confirm.get(0);
-                    skyline_confirm.remove(0);
-                    return t;
-                }
             }
 
             //The temp file has been scanned completely
@@ -383,7 +357,7 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
             Tuple t;
             if((t = tempScan.getNext(rid))==null)
             {
-                diskdone = true; //Skyline only in mainmemory window
+                diskdone = true; //Skyline only in mainmemory
                 tempScan.closescan();
                 if(skyline_mainm.size()>0)
                 {
@@ -402,12 +376,7 @@ public class BlockNestedLoopsSky  extends Iterator implements GlobalConst
 
             else
             {
-                tempScan.closescan();
-                tempScan = new Scan(temp1);
-                temp.deleteFile();
                 temp = temp1;
-                //temp_file_number_records_scanned = 0;
-
                 temp1 = new Heapfile(null);
             }
 

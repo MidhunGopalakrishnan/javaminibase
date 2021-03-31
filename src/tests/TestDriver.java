@@ -36,8 +36,19 @@ public class TestDriver {
   public final static boolean OK   = true; 
   public final static boolean FAIL = false; 
 
-  protected String dbpath;  
+  protected String dbpath;
+
+  public static int getTestNumber() {
+    return testNumber;
+  }
+
+  public static void setTestNumber(int testNumber) {
+    TestDriver.testNumber = testNumber;
+  }
+
   protected String logpath;
+
+  public static int testNumber =0;
   
 
   /** 
@@ -58,8 +69,8 @@ public class TestDriver {
     //To port it to a different platform, get "user.name" should
     //still work well because this feature is not meant to be UNIX
     //dependent. 
-    dbpath = "/tmp/"+nameRoot+System.getProperty("user.name")+".minibasev3-db";
-    logpath = "/tmp/"+nameRoot +System.getProperty("user.name")+".minibasev3-log";
+    dbpath = "/tmp/"+nameRoot+System.getProperty("user.name")+".minibasev8-db";
+    logpath = "/tmp/"+nameRoot +System.getProperty("user.name")+".minibasev8-log";
   }
 
   /**
@@ -200,11 +211,31 @@ public class TestDriver {
     //the logged error types. 
 
     //Running test1() to test6()
-    if (!test1()) { _passAll = FAIL; }
-    if (!test2()) { _passAll = FAIL; }
-    if (!test3()) { _passAll = FAIL; }
-    if (!test4()) { _passAll = FAIL; }
-    if (!test5()) { _passAll = FAIL; }
+    if(testNumber==1) {
+      if (!test1()) {
+        _passAll = FAIL;
+      } // Nested Loop Sky
+    }
+    if(testNumber==2) {
+      if (!test2()) {
+        _passAll = FAIL;
+      } // Block Nested Loop Sky
+    }
+    if(testNumber==3) {
+      if (!test3()) {
+        _passAll = FAIL;
+      } // Sort Pref Sky
+    }
+    if(testNumber==4) {
+      if (!test4()) {
+        _passAll = FAIL;
+      } // BTree Sky
+    }
+    if(testNumber==5) {
+      if (!test5()) {
+        _passAll = FAIL;
+      } // BTree Sorted Sky
+    }
 //    if (!test6()) { _passAll = FAIL; }
 
     return _passAll;

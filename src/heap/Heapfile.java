@@ -444,7 +444,8 @@ public class Heapfile implements Filetype,  GlobalConst {
 		  //Start IF02
 		  // case (2.1) : add a new data page record into the
 		  //              current directory page
-		  currentDataPage = _newDatapage(dpinfo); 
+		  currentDataPage = _newDatapage(dpinfo);
+		  //PCounter.writeIncrement();
 		  // currentDataPage is pinned! and dpinfo->pageId is also locked
 		  // in the exclusive mode  
 		  
@@ -480,6 +481,7 @@ public class Heapfile implements Filetype,  GlobalConst {
 		{  //Start else 02
 		  // case (2.2)
 		  nextDirPageId = currentDirPage.getNextPage();
+
 		  // two sub-cases:
 		  //
 		  // (2.2.1) nextDirPageId != INVALID_PAGE:
@@ -492,6 +494,7 @@ public class Heapfile implements Filetype,  GlobalConst {
 		  if (nextDirPageId.pid != INVALID_PAGE) 
 		    { //Start IF03
 		      // case (2.2.1): there is another directory page:
+
 		      unpinPage(currentDirPageId, false);
 		      
 		      currentDirPageId.pid = nextDirPageId.pid;
@@ -508,6 +511,7 @@ public class Heapfile implements Filetype,  GlobalConst {
 		    {  //Start Else03
 		      // case (2.2): append a new directory page after currentDirPage
 		      //             since it is the last directory page
+//				PCounter.writeIncrement();
 		      nextDirPageId = newPage(pageinbuffer, 1);
 		      // need check error!
 		      if(nextDirPageId == null)
@@ -994,6 +998,7 @@ public class Heapfile implements Filetype,  GlobalConst {
 
     try {
       tmpId = SystemDefs.JavabaseBM.newPage(page,num);
+      PCounter.writeIncrement();
     }
     catch (Exception e) {
       throw new HFBufMgrException(e,"Heapfile.java: newPage() failed");
@@ -1002,7 +1007,7 @@ public class Heapfile implements Filetype,  GlobalConst {
     return tmpId;
 
   } // end of newPage
- //TODO : mkg changed it to public. change it back to private
+
   private PageId get_file_entry(String filename)
     throws HFDiskMgrException {
 

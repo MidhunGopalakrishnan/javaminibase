@@ -7,7 +7,6 @@ import heap.*;
 import iterator.*;
 
 import java.io.*;
-import java.lang.reflect.Array;
 import java.util.*;
 
 class SkyLineTestDriver extends TestDriver
@@ -20,6 +19,7 @@ class SkyLineTestDriver extends TestDriver
     int numOfPages;
     String fileName = null;
     ArrayList<Integer> prefListTemp = new ArrayList<>();
+    int testNumber =0;
 
     public SkyLineTestDriver() throws IOException, HFException, HFBufMgrException, HFDiskMgrException {
         super("skylinetest");
@@ -64,6 +64,7 @@ class SkyLineTestDriver extends TestDriver
             System.err.println("" + e);
         }
 
+        PCounter.initialize();
         // Enter data using Scanner
         Scanner sc = new Scanner(System.in);
 
@@ -74,6 +75,13 @@ class SkyLineTestDriver extends TestDriver
         String preflist1 = sc.nextLine();
         System.out.println("Enter number of pages : ");
         numOfPages = sc.nextInt();
+        System.out.println("Which test to perform ? ");
+        System.out.println("1. Nested Loop Sky ");
+        System.out.println("2. Block Nested Loop Sky");
+        System.out.println("3. Sort First Sky");
+        System.out.println("4. BTree Sky");
+        System.out.println("5. BTree Sorted Sky" );
+        testNumber = sc.nextInt();
 
         String[] preflistArray = preflist1.split(",");
 
@@ -106,6 +114,7 @@ class SkyLineTestDriver extends TestDriver
         }
 
         int size = t.size();
+        System.out.println();
         System.out.println("Tuple size : " + size);
 
         // Create unsorted data file "test4.in"
@@ -151,12 +160,18 @@ class SkyLineTestDriver extends TestDriver
 
         }
 
+        System.out.println("Initial read/write counts before calling test cases");
+        PCounter.printCounter();
+
         scanner.close();
         sc.close();
+
+
 
         //Run the tests. Return type different from C++
         boolean _pass = false;
         try {
+            TestDriver.setTestNumber(testNumber);
             _pass = runAllTests();
         } catch (Exception e) {
             e.printStackTrace();
@@ -210,7 +225,7 @@ class SkyLineTestDriver extends TestDriver
         }
 
         int size = t.size();
-        System.out.println("Tuple size : " + size);
+//        System.out.println("Tuple size : " + size);
 
         FldSpec[] Pprojection = new FldSpec[numOfColumns];
         for (int i = 0; i < numOfColumns; i++) {
@@ -220,8 +235,8 @@ class SkyLineTestDriver extends TestDriver
         am = null;
         try {
             am = new FileScan(heapFileName, Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
-            PCounter.printCounter();
-            System.out.println("File Scan completed");
+            //PCounter.printCounter();
+//            System.out.println("File Scan completed");
         } catch (Exception e) {
             System.err.println("" + e);
         }
@@ -233,12 +248,14 @@ class SkyLineTestDriver extends TestDriver
 
         NestedLoopsSky s = new NestedLoopsSky(Ptypes, numOfColumns, x, am,
                 heapFileName, preflist, preflist.length, numOfPages);
+        System.out.println();
         System.out.println("Printing NestedLoop Sky elements for " + fileName);
 
         while ((t = s.get_next()) != null) {
             t.print(Ptypes); //print skyline elements
         }
         s.close();
+        System.out.println("NestedLoop Sky Read/Write Counts");
         PCounter.printCounter();
         return true;
     }
@@ -274,7 +291,7 @@ class SkyLineTestDriver extends TestDriver
         }
 
         int size = t.size();
-        System.out.println("Tuple size : " + size);
+//        System.out.println("Tuple size : " + size);
 
         FldSpec[] Pprojection = new FldSpec[numOfColumns];
         for (int i = 0; i < numOfColumns; i++) {
@@ -284,8 +301,8 @@ class SkyLineTestDriver extends TestDriver
         am = null;
         try {
             am = new FileScan(heapFileName, Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
-            PCounter.printCounter();
-            System.out.println("File Scan completed");
+            //PCounter.printCounter();
+//            System.out.println("File Scan completed");
         } catch (Exception e) {
             System.err.println("" + e);
         }
@@ -298,13 +315,15 @@ class SkyLineTestDriver extends TestDriver
 
         BlockNestedLoopsSky s = new BlockNestedLoopsSky(Ptypes, numOfColumns, x, am,
                 heapFileName, preflist, preflist.length, numOfPages);
-        System.out.println("Printing NestedLoop Sky elements for " + fileName);
+        System.out.println();
+        System.out.println("Printing BlockNestedLoop Sky elements for " + fileName);
 
         while ((t = s.get_next()) != null) {
             t.print(Ptypes); //print skyline elements
         }
 
         s.close();
+        System.out.println("BlockNestedLoop Sky Read/Write Counts");
         PCounter.printCounter();
         return true;
 
@@ -343,7 +362,7 @@ class SkyLineTestDriver extends TestDriver
         }
 
         int size = t.size();
-        System.out.println("Tuple size : " + size);
+//        System.out.println("Tuple size : " + size);
 
         FldSpec[] Pprojection = new FldSpec[numOfColumns];
         for (int i = 0; i < numOfColumns; i++) {
@@ -353,8 +372,8 @@ class SkyLineTestDriver extends TestDriver
         am = null;
         try {
             am = new FileScan(heapFileName, Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
-            PCounter.printCounter();
-            System.out.println("File Scan completed");
+            //PCounter.printCounter();
+//            System.out.println("File Scan completed");
         } catch (Exception e) {
             System.err.println("" + e);
         }
@@ -367,13 +386,15 @@ class SkyLineTestDriver extends TestDriver
 
         SortFirstSky s = new SortFirstSky(Ptypes, numOfColumns, x, am,
                 heapFileName, preflist, preflist.length, numOfPages);
-        System.out.println("Printing NestedLoop Sky elements for " + fileName);
+        System.out.println();
+        System.out.println("Printing SortFirstSky elements for " + fileName);
 
         while ((t = s.get_next()) != null) {
             t.print(Ptypes); //print skyline elements
         }
 
         s.close();
+        System.out.println("SortedSky Read/Write Counts");
         PCounter.printCounter();
         return true;
 
@@ -457,8 +478,8 @@ class SkyLineTestDriver extends TestDriver
                 BTreeFileList[k].close();
             }
         }
-        System.out.println("Read/writes after Index Files based on preference attributes are created and data is inserted");
-        PCounter.printCounter();
+//        System.out.println("Read/writes after Index Files based on preference attributes are created and data is inserted");
+//        PCounter.printCounter();
 
 
         try {
@@ -466,6 +487,8 @@ class SkyLineTestDriver extends TestDriver
             for (int i = 0; i < numOfColumns; i++) {
                 Pprojection[i] = new FldSpec(new RelSpec(RelSpec.outer), i + 1);
             }
+            System.out.println();
+            System.out.println("Printing BTreeSky elements for " + fileName);
 
             BTreeSky bts = new BTreeSky(Ptypes, numOfColumns, x, am, heapFileName,
                     preflist, preflist.length, BTreeFileList, numOfPages, f,numOfColumns);
@@ -474,7 +497,8 @@ class SkyLineTestDriver extends TestDriver
             e.printStackTrace();
         }
 
-        System.out.println("Read/Writes after BTreeSky call");
+//        System.out.println("Read/Writes after BTreeSky call");
+        System.out.println("BTreeSky Read/Write Counts");
         PCounter.printCounter();
 
         // close all index files
@@ -515,7 +539,8 @@ class SkyLineTestDriver extends TestDriver
 
         short[] Psizes = {};
 
-        BTreeFile btf = new BTreeFile("BTreeSortedIndex", AttrType.attrInteger, REC_LEN1, 1/*delete*/);
+        BTreeFile btf = new BTreeFile("BSortedIndex", AttrType.attrInteger, REC_LEN1, 1/*delete*/);
+
         try {
 
             RID rid = new RID();
@@ -559,6 +584,8 @@ class SkyLineTestDriver extends TestDriver
             //am = new FileScan(heapFileName, Ptypes, Psizes, (short) numOfColumns, (short) numOfColumns, Pprojection, null);
 
             //BTreeSky testing
+            System.out.println();
+            System.out.println("Printing BTreeSortedSky elements for " + fileName);
             BTreeSortedSky bts = new BTreeSortedSky(Ptypes, numOfColumns, x, am, heapFileName, preflist, preflist.length, btf, numOfPages);
             bts.close();
         } catch (Exception e) {
@@ -568,6 +595,7 @@ class SkyLineTestDriver extends TestDriver
         // close the file scan
         scan.closescan();
 
+        System.out.println("BTreeSortedSky Read/Write Counts");
         PCounter.printCounter();
         //return status;
         btf.close();

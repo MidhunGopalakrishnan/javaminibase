@@ -126,23 +126,45 @@ public class BTreeSky extends Iterator implements GlobalConst {
             System.err.println("" + e);
         }
 
-        //call nestedloopsky
-        NestedLoopsSky nls = new NestedLoopsSky( in1,
-        numOfColumns,
-        t1_str_sizes,
-        am, tempHeapFileName,
-        pref_list, //Preference List
-        pref_list_length, //Preference List Length
-        n_pages);
+
+        BlockNestedLoopsSky bnl = new BlockNestedLoopsSky( in1,
+                numOfColumns,
+                t1_str_sizes,
+                am,  // This will be the filescan iterator that returns records one by one.
+                tempHeapFileName,
+                pref_list, //Preference List
+                pref_list_length, //Preference List Length
+                n_pages);
         try {
-        while((scanTuple=nls.get_next())!=null) {
-            scanTuple.print(in1);
-        }}
+            while((scanTuple=bnl.get_next())!=null) {
+                scanTuple.print(in1);
+            }}
         catch(Exception e) {
             e.printStackTrace();
         }
-        nls.close();
+        bnl.close();
+
         am.close();
+
+//        //call nestedloopsky
+//        NestedLoopsSky nls = new NestedLoopsSky( in1,
+//        numOfColumns,
+//        t1_str_sizes,
+//        am, tempHeapFileName,
+//        pref_list, //Preference List
+//        pref_list_length, //Preference List Length
+//        n_pages);
+//        try {
+//        while((scanTuple=nls.get_next())!=null) {
+//            scanTuple.print(in1);
+//        }}
+//        catch(Exception e) {
+//            e.printStackTrace();
+//        }
+//        nls.close();
+//        am.close();
+
+
     }
 
     public Tuple get_next()

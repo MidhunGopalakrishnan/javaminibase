@@ -89,6 +89,7 @@ public class Scan implements GlobalConst{
     
     if (nextUserStatus != true) {
         nextDataPage();
+        PCounter.readIncrement();
     }
      
     if (datapage == null)

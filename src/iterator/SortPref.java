@@ -72,10 +72,10 @@ public class SortPref extends Iterator implements GlobalConst{
             LowMemException,
             SortException,
             Exception {
-        System.out.println("SETUP FOR MERGE!!!");
+//        System.out.println("SETUP FOR MERGE!!!");
         // don't know what will happen if n_R_runs > _n_pages
-        System.out.println("Number of runs: " + n_R_runs);
-        System.out.println("NPAGES: " + _n_pages);
+//        System.out.println("Number of runs: " + n_R_runs);
+//        System.out.println("NPAGES: " + _n_pages);
         if (n_R_runs > _n_pages)
             throw new LowMemException("SortPref.java: Not enough memory to sort in two passes.");
 
@@ -351,7 +351,7 @@ public class SortPref extends Iterator implements GlobalConst{
         }
 
         if (Q.empty()) {
-            System.out.print("no more tuples availble!!!!!!!!!!!\n");
+//            System.out.print("no more tuples availble!!!!!!!!!!!\n");
             return null;
         }
 
@@ -598,7 +598,7 @@ public class SortPref extends Iterator implements GlobalConst{
 
             // Check if we are done
             if (p_elems_curr_Q == 0) {
-                System.out.println("Check if we are done");
+//                System.out.println("Check if we are done");
                 // current queue empty despite our attemps to fill in
                 // indicating no more tuples from input
                 if (p_elems_other_Q == 0) {

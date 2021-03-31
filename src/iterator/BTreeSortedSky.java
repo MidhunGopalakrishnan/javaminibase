@@ -1,12 +1,9 @@
 package iterator;
 
 import btree.IndexFile;
-import diskmgr.PCounter;
 import global.AttrType;
 import global.GlobalConst;
 import global.IndexType;
-import global.RID;
-import heap.Heapfile;
 import heap.Tuple;
 import index.IndexException;
 import index.IndexScan;
@@ -37,7 +34,7 @@ public class BTreeSortedSky extends Iterator implements GlobalConst  {
             e.printStackTrace();
         }
 
-        IndexScan iscan = new IndexScan(new IndexType(IndexType.B_Index), relationName, "BTreeSortedIndex",
+        IndexScan iscan = new IndexScan(new IndexType(IndexType.B_Index), relationName, "BSortedIndex",
                 in1, t1_str_sizes, numOfColumns, numOfColumns, projlist, expr, numOfColumns, false);
 
         //call nestedloopsky
@@ -49,10 +46,6 @@ public class BTreeSortedSky extends Iterator implements GlobalConst  {
         catch (Exception e) {
             e.printStackTrace();
         }
-
-//        while((t1=iscan.get_next())!=null){
-//            t1.print(in1);
-//        }
 
         BlockNestedLoopsSky bnl = new BlockNestedLoopsSky( in1,
                 numOfColumns,
@@ -72,6 +65,24 @@ public class BTreeSortedSky extends Iterator implements GlobalConst  {
         bnl.close();
 
         iscan.close();
+
+        //call nestedloopsky
+//        NestedLoopsSky nls = new NestedLoopsSky( in1,
+//                numOfColumns,
+//                t1_str_sizes,
+//                iscan, relationName,
+//                pref_list, //Preference List
+//                pref_list_length, //Preference List Length
+//                n_pages);
+//        try {
+//            while((t1=nls.get_next())!=null) {
+//                t1.print(in1);
+//            }}
+//        catch(Exception e) {
+//            e.printStackTrace();
+//        }
+//        nls.close();
+//        iscan.close();
     }
 
     public Tuple get_next()
