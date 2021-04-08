@@ -205,7 +205,7 @@ class Phase3TestDriver extends TestDriver
         int mergeAttrTable1 = 2;
         int mergeAttrTable2 = 2;
         int n_pages = 5;
-        int k = 2;
+        int k = 3;
         AttrType[] attrType1 = new AttrType[numOfColumns];
         attrType1[0] = new AttrType(AttrType.attrString);
         attrType1[1] = new AttrType(AttrType.attrInteger);
@@ -227,7 +227,7 @@ class Phase3TestDriver extends TestDriver
 
         createIndexFile(table1, table1Name, mergeAttrTable1);
         createIndexFile(table2, table2Name, mergeAttrTable2);
-        System.out.println("Index file creation success");
+//        System.out.println("Index file creation success");
 
         //get top k results
         try {
@@ -240,7 +240,7 @@ class Phase3TestDriver extends TestDriver
                     table1Name,
                     table2Name,
             k,
-            n_pages,numOfColumns1,numOfColumns2,joinAttrTable1,joinAttrTable2,mergeAttrTable1,mergeAttrTable2
+            n_pages,numOfColumns1,numOfColumns2,joinAttrTable1,joinAttrTable2,mergeAttrTable1,mergeAttrTable2,table1,table2
     );
 
         } catch (Exception e) {
