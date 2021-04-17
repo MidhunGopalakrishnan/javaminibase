@@ -26,10 +26,10 @@ class Phase3TestDriver extends TestDriver
         Heapfile table2 = null;
         String table1Name = "table1";
         String table2Name = "table2";
-        String table1WithFullPath = "src/data/phase3data11.txt";
-        String table2WithFullPath = "src/data/phase3data2.txt";
+        String table1WithFullPath = "src/data/phase3demo/r_sii2000_1_75_200.csv";
+        String table2WithFullPath = "src/data/phase3demo/r_sii2000_10_10_10.csv";
         int numOfColumns =3;
-        private static short REC_LEN1 = 4;
+        private static short REC_LEN1 = 15;
         public Phase3TestDriver() {
             super("phase3test");
         }
@@ -76,12 +76,12 @@ class Phase3TestDriver extends TestDriver
 
         // Commands here is very machine dependent.  We assume
         // user are on UNIX system here
-//        try {
-//            Runtime.getRuntime().exec(remove_logcmd);
-//            Runtime.getRuntime().exec(remove_dbcmd);
-//        } catch (IOException e) {
-//            System.err.println("" + e);
-//        }
+        try {
+            Runtime.getRuntime().exec(remove_logcmd);
+            Runtime.getRuntime().exec(remove_dbcmd);
+        } catch (IOException e) {
+            System.err.println("" + e);
+        }
 
         remove_logcmd = remove_cmd + newlogpath;
         remove_dbcmd = remove_cmd + newdbpath;
@@ -89,22 +89,30 @@ class Phase3TestDriver extends TestDriver
         //This step seems redundant for me.  But it's in the original
         //C++ code.  So I am keeping it as of now, just in case I
         //I missed something
-//        try {
-//            Runtime.getRuntime().exec(remove_logcmd);
-//            Runtime.getRuntime().exec(remove_dbcmd);
-//        } catch (IOException e) {
-//            System.err.println("" + e);
-//        }
+        try {
+            Runtime.getRuntime().exec(remove_logcmd);
+            Runtime.getRuntime().exec(remove_dbcmd);
+        } catch (IOException e) {
+            System.err.println("" + e);
+        }
 
         // create table1 heap file
+        try {
+            Heapfile heapFile = new Heapfile(table1Name);
+            heapFile.deleteFile();
+            heapFile = new Heapfile(table2Name);
+            heapFile.deleteFile();
+        }catch(Exception e){
+            System.out.println("Error in deleting heap file");
+        }
         table1 = createHeapFileFromData(table1Name,table1WithFullPath);
         table2 = createHeapFileFromData(table2Name,table2WithFullPath);
 
-        try {
-            SystemDefs.JavabaseBM.flushAllPages();
-        }catch(Exception e){
-            System.out.println("Failed while flushing pages");
-        }
+//        try {
+//            SystemDefs.JavabaseBM.flushAllPages();
+//        }catch(Exception e){
+//            System.out.println("Failed while flushing pages");
+//        }
 
         //Run the tests. Return type different from C++
         boolean _pass = false;
@@ -116,12 +124,12 @@ class Phase3TestDriver extends TestDriver
         }
 
         //Clean up again
-//        try {
-//            Runtime.getRuntime().exec(remove_logcmd);
-//            Runtime.getRuntime().exec(remove_dbcmd);
-//        } catch (IOException e) {
-//            System.err.println("" + e);
-//        }
+        try {
+            Runtime.getRuntime().exec(remove_logcmd);
+            Runtime.getRuntime().exec(remove_dbcmd);
+        } catch (IOException e) {
+            System.err.println("" + e);
+        }
 
         System.out.println("\n" + "..." + testName() + " tests ");
         System.out.println(_pass == OK ? "completely successfully" : "failed");
@@ -163,11 +171,11 @@ class Phase3TestDriver extends TestDriver
                 s = new Scanner(obj);
                 while (s.hasNextLine()) {
                     String dataLine = s.nextLine();
-                    String[] dataArray = dataLine.split(" ");
+                    String[] dataArray = dataLine.split(",");
                     if (dataArray.length == 1) {
                         numOfColumns = Integer.parseInt(dataArray[0]);
 //                        System.out.println("Number of columns : " + dataArray[0]);
-                    } else if (dataArray.length > 1) {
+                    } else if (dataArray.length > 2) {
                         for (int i = 0; i < dataArray.length; i++) {
 //                            System.out.println(dataArray[i]);
                             try {
@@ -306,18 +314,6 @@ class Phase3TestDriver extends TestDriver
     }
 
     protected boolean test2(){
-            try {
-                PageId pg = SystemDefs.JavabaseDB.get_file_entry(table1Name);
-                if(pg!=null){
-                    System.out.println("Table is persistent");
-                }
-                else {
-                    System.out.println("Table does not persist");
-                }
-            } catch(Exception e){
-
-            }
-
             return true;
     }
     protected boolean test3(){

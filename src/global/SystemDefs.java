@@ -83,7 +83,7 @@ public class SystemDefs {
       } 
       else {
 	try {
-	  JavabaseDB.openDB(dbname);
+	  JavabaseDB.openDB(dbname,num_pgs);
 	  JavabaseBM.flushAllPages();
 	}
 	catch (Exception e) {

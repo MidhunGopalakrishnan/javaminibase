@@ -60,7 +60,32 @@ class SORTDriver extends TestDriver
     super("sorttest");
   }
 
-  public boolean runTests () throws IOException, AddFileEntryException, GetFileEntryException, ConstructPageException {
+    @Override
+    protected boolean runAllTests() throws Exception {
+        boolean _passAll = OK;
+        if (!test1()) {
+            _passAll = FAIL;
+        }
+        if (!test2()) {
+            _passAll = FAIL;
+        }
+        if (!test3()) {
+            _passAll = FAIL;
+        }
+        if (!test4()) {
+            _passAll = FAIL;
+        }
+        if (!test5()) {
+            _passAll = FAIL;
+        }
+        if (!test6()) {
+            _passAll = FAIL;
+        }
+
+        return _passAll;
+    }
+
+    public boolean runTests () throws IOException, AddFileEntryException, GetFileEntryException, ConstructPageException {
     
     System.out.println ("\n" + "Running " + testName() + " tests...." + "\n");
     
@@ -126,7 +151,7 @@ class SORTDriver extends TestDriver
     
     return _pass;
   }
-/*
+
   protected boolean test1()
   {
     System.out.println("------------------------ TEST 1 --------------------------");
@@ -299,9 +324,6 @@ class SORTDriver extends TestDriver
     return status;
   }
 
- */
-
-/*
   protected boolean test2()
   {
     System.out.println();
@@ -458,7 +480,6 @@ class SORTDriver extends TestDriver
     return status;
   }
 
-*/
 protected boolean test3()
 {
     System.out.println();
