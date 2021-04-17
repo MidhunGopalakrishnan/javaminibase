@@ -7,10 +7,7 @@ import bufmgr.HashEntryNotFoundException;
 import bufmgr.InvalidFrameNumberException;
 import bufmgr.PageUnpinnedException;
 import bufmgr.ReplacerException;
-import global.AttrType;
-import global.GlobalConst;
-import global.RID;
-import global.SystemDefs;
+import global.*;
 import heap.Heapfile;
 import heap.Scan;
 import heap.Tuple;
@@ -79,12 +76,12 @@ class Phase3TestDriver extends TestDriver
 
         // Commands here is very machine dependent.  We assume
         // user are on UNIX system here
-        try {
-            Runtime.getRuntime().exec(remove_logcmd);
-            Runtime.getRuntime().exec(remove_dbcmd);
-        } catch (IOException e) {
-            System.err.println("" + e);
-        }
+//        try {
+//            Runtime.getRuntime().exec(remove_logcmd);
+//            Runtime.getRuntime().exec(remove_dbcmd);
+//        } catch (IOException e) {
+//            System.err.println("" + e);
+//        }
 
         remove_logcmd = remove_cmd + newlogpath;
         remove_dbcmd = remove_cmd + newdbpath;
@@ -92,16 +89,22 @@ class Phase3TestDriver extends TestDriver
         //This step seems redundant for me.  But it's in the original
         //C++ code.  So I am keeping it as of now, just in case I
         //I missed something
-        try {
-            Runtime.getRuntime().exec(remove_logcmd);
-            Runtime.getRuntime().exec(remove_dbcmd);
-        } catch (IOException e) {
-            System.err.println("" + e);
-        }
+//        try {
+//            Runtime.getRuntime().exec(remove_logcmd);
+//            Runtime.getRuntime().exec(remove_dbcmd);
+//        } catch (IOException e) {
+//            System.err.println("" + e);
+//        }
 
         // create table1 heap file
         table1 = createHeapFileFromData(table1Name,table1WithFullPath);
         table2 = createHeapFileFromData(table2Name,table2WithFullPath);
+
+        try {
+            SystemDefs.JavabaseBM.flushAllPages();
+        }catch(Exception e){
+            System.out.println("Failed while flushing pages");
+        }
 
         //Run the tests. Return type different from C++
         boolean _pass = false;
@@ -113,12 +116,12 @@ class Phase3TestDriver extends TestDriver
         }
 
         //Clean up again
-        try {
-            Runtime.getRuntime().exec(remove_logcmd);
-            Runtime.getRuntime().exec(remove_dbcmd);
-        } catch (IOException e) {
-            System.err.println("" + e);
-        }
+//        try {
+//            Runtime.getRuntime().exec(remove_logcmd);
+//            Runtime.getRuntime().exec(remove_dbcmd);
+//        } catch (IOException e) {
+//            System.err.println("" + e);
+//        }
 
         System.out.println("\n" + "..." + testName() + " tests ");
         System.out.println(_pass == OK ? "completely successfully" : "failed");
@@ -303,7 +306,19 @@ class Phase3TestDriver extends TestDriver
     }
 
     protected boolean test2(){
-        return true;
+            try {
+                PageId pg = SystemDefs.JavabaseDB.get_file_entry(table1Name);
+                if(pg!=null){
+                    System.out.println("Table is persistent");
+                }
+                else {
+                    System.out.println("Table does not persist");
+                }
+            } catch(Exception e){
+
+            }
+
+            return true;
     }
     protected boolean test3(){
         return true;

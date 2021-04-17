@@ -76,7 +76,7 @@ public class DB implements GlobalConst {
     
     File DBfile = new File(name);
     
-    DBfile.delete();
+//    DBfile.delete();
     
     // Creaat a random access file
     fp = new RandomAccessFile(fname, "rw");

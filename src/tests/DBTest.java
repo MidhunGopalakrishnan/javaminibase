@@ -888,7 +888,7 @@ class DBDriver extends TestDriver implements GlobalConst {
     if (!test6()) { _passAll = FAIL; }
    try{
     SystemDefs.JavabaseDB.DBDestroy();
-   
+
    }
    catch (IOException e){
     System.err.println(" DB already destroyed");
