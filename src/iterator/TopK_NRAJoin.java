@@ -113,6 +113,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         String[] tempArr1 = new String[4];
 
         int count = 0;
+        String[][] added = new String[arrSize][2];
         String[][] pLBCalc = new String[arrSize][4];  // [String,index,relation,value]
         String[][] pUBCalc = new String[arrSize][4];
         String[][] found = new String[arrSize][2+1];  // used to check if an object is fully seen
@@ -147,6 +148,8 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                 boolean complete = false;
                 boolean notIncluded = false;
                 boolean notIncluded1 = false;
+                boolean notIncluded2 = false;
+                boolean notIncluded3 = false;
                 for(int i = count; i < arrSize && !(pLBCalc[i][0].compareTo("0") == 0);i++){
                     String checkerLB = pLBCalc[i][0];
                     pLBrow[i%2] = pLBCalc[i][0];
@@ -154,6 +157,8 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                         if(count > 0 && Bounds[j][0].compareTo("0") == 0){
                             notIncluded = contains(Bounds,pLBrow[0]);
                             notIncluded1 = contains(Bounds,pLBrow[1]);
+                            notIncluded2 = contains2(Bounds,pLBrow[0],pLBCalc[i][1]);
+                            //notIncluded3 = contains2(Bounds,pLBrow[1],pLBCalc[i][1]);
                             if(!notIncluded){
                                 int check = 0;
                                 while(!(pLBCalc[check][0].compareTo("0") == 0)){
@@ -193,6 +198,28 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                                     check++;
                                 }
                             }
+                            notIncluded2 = contains2(Bounds,pLBCalc[i][0],pLBCalc[i][1]);
+                            if(!notIncluded2){
+                                int check = 0;
+                                //while(!(pLBCalc[check][0].compareTo("0") == 0)){
+                                    //if((pLBCalc[check][0].compareTo(pLBCalc[i][0]) == 0)){
+                                        Bounds[count][0] = pLBCalc[i][0];
+                                        if(pLBCalc[i][2].compareTo("0") == 0) {
+                                            Bounds[count][1] = pLBCalc[i][1];
+                                            Bounds[count][2] = "$";
+                                        }else{
+                                            Bounds[count][2] = pLBCalc[i][1];
+                                            Bounds[count][1] = "$";
+                                        }
+                                        Bounds[count][3] = pLBCalc[i][3];
+                                        Bounds[count][4] = pUBCalc[i][3];
+                                        count++;
+                                    //}
+                                    check++;
+                                //}
+                            }
+
+
                             break;
                         }
                         String checkerB = Bounds[j][0];
@@ -208,16 +235,20 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                                         Bounds[j][0] = pLBCalc[l][0];
                                         if(Bounds[j][1].compareTo("$") == 0){
                                             Bounds[j][1] = pLBCalc[i][1];
+                                            Bounds[j][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
+                                            Bounds[j][4] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
                                         }else if(Bounds[j][2].compareTo("$") == 0){
                                             Bounds[j][2] = pLBCalc[l][1];
+                                            Bounds[j][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
+                                            Bounds[j][4] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
                                         }
                                         //Bounds[j][1] = pLBCalc[i][1];
                                         //Bounds[j][2] = pLBCalc[l][1];
-                                        if(Bounds[j][3].compareTo(String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]))) > 0 ) {
-
-                                        }else{
-                                            Bounds[j][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
-                                        }
+//                                        if(Bounds[j][3].compareTo(String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]))) > 0 ) {
+//
+//                                        }else{
+//                                            Bounds[j][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
+//                                        }
 
                                         complete = true;
                                         rel11 = false;
@@ -229,13 +260,17 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                         }else if(checkerLB.compareTo(pLBCalc[i+1][0]) == 0){
                             // next value is the same as current seen 2+
                             // need to add pLB to Bounds, then check all of bounds for same String
+                            if(containsMatch(Bounds,pLBCalc[i][1],pLBCalc[i+1][1])){
+                                break;
+                            }
                             Bounds[count][0] = pLBCalc[i][0];
                             Bounds[count][1] = pLBCalc[i][1];
                             Bounds[count][2] = pLBCalc[i+1][1];
                             Bounds[count][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[i+1][3]));
-
+                            Bounds[count][4] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[i+1][3]));
                             count++;
-
+                            added[count][0] = pLBCalc[i][1];
+                            added[count][1] = pLBCalc[i+1][1];;
                             break;
                             /*for(int l = 0; l < Bounds.length && !(Bounds[l][0].compareTo("0") == 0);l++){
                                 if(l==j){
@@ -290,6 +325,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                                 Bounds[0][2] = pLBCalc[i][1];
                             }
                             Bounds[0][3] = pLBCalc[i][3];
+                            Bounds[0][4] = pLBCalc[i][3];
                             count++;
                             // add second item
                             Bounds[count][0] = pLBCalc[i+1][0];
@@ -301,6 +337,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                                 Bounds[count][2] = pLBCalc[i+1][1];
                             }
                             Bounds[count][3] = pLBCalc[i+1][3];
+                            Bounds[count][4] = pLBCalc[i+1][3];
                             count++;
                             break;
                         }else if(true){
@@ -385,7 +422,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                 // sort based on pLB
                 for(int i = 0; i < arrSize-1 && !(Bounds[i][0].compareTo("0") == 0); i++){
                     int mindex = i;
-                    for(int j = i+1; j<arrSize;j++) {
+                    for(int j = i+1; j<arrSize && !(Bounds[j][0].compareTo("0") == 0);j++) {
                         int tempy1 = Integer.parseInt(Bounds[j][3]);
                         int tempy2 = Integer.parseInt(Bounds[mindex][3]);
                         if (tempy1 > tempy2){
@@ -439,6 +476,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                     continueWhile = false;
                     System.out.println("HIT EXIT CONDITION");
                     System.out.println("TOP K tuples");
+                    System.out.printf("%-20s%-8s%-14s%-14s%-8s%-8s\n","Join Attribute","Sum","Merge Attr1","Merge Attr2","Index1","Index2");
                     for(int i = 0;i < k; i++){
                         if(setZero){
                             findk = Integer.parseInt(Bounds[0][3]);
@@ -449,7 +487,27 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                         // print the values
                         for(int j = 0; j < Bounds.length; j++){
                             if(String.valueOf(findk).compareTo(Bounds[j][3]) == 0 ){
-                                System.out.println(Bounds[j][0] + "-->" + Bounds[j][3]);
+                                System.out.printf("%-20s%-8s",Bounds[j][0], Bounds[j][3]);
+                                String tupleVal1 = Bounds[j][1];
+                                String tupleVal2 = Bounds[j][2];
+                                String foundVal1 = "";
+                                String foundVal2 = "";
+                                for(int m = 0; m < pLBCalc.length && !(pLBCalc[m][0].compareTo("0") == 0);m++){
+                                    if(tupleVal1.compareTo(pLBCalc[m][1]) == 0){
+                                        foundVal1 = pLBCalc[m][3];
+                                    }
+                                    if(tupleVal2.compareTo(pLBCalc[m][1]) == 0){
+                                        foundVal2 = pLBCalc[m][3];
+                                    }
+                                }
+                                if(foundVal1.compareTo("") == 0){
+                                    foundVal1 = "-";
+                                }
+                                if(foundVal2.compareTo("") == 0){
+                                    foundVal2 = "-";
+                                }
+                                System.out.printf("%-14s%-14s", foundVal1,foundVal2);
+                                System.out.printf("%-8s%-8s\n",tupleVal1, tupleVal2);
                                 for(int l = j; l < Bounds.length-1; l++){
                                     Bounds[l] = Bounds[l+1];
                                     pLB[l] = pLB[l+1];
@@ -650,6 +708,33 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         }
         return false;
     }
+    public static boolean containsMatch(String[][] arr, String item, String item2) {
 
+        for (int count = 0; !(arr[count][0].compareTo("0") == 0) ;count++) {
+            if (item.compareTo(arr[count][1]) == 0) {
+                if(item2.compareTo(arr[count][2]) == 0) {
+                    return true;
+                }
+            }
+
+        }
+        return false;
+    }
+
+    public static boolean contains2(String[][] arr, String item, String item1) {
+
+        for (int count = 0; !(arr[count][0].compareTo("0") == 0) ;count++) {
+
+            if (item.compareTo(arr[count][0]) == 0) {
+                if(item1.compareTo(arr[count][1]) == 0){
+                    return true;
+                }
+                if(item1.compareTo(arr[count][2]) == 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
 
