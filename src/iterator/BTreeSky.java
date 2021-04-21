@@ -23,128 +23,140 @@ public class BTreeSky extends Iterator implements GlobalConst {
     String tempHeapFileName = "btreesky.in";
 
     public BTreeSky (AttrType[] in1, int len_in1, short[] t1_str_sizes, Iterator am1, java.lang.String
-            relationName, int[] pref_list, int pref_list_length, IndexFile[] index_file_list, int n_pages, Heapfile dataFile, int numOfColumns)
+            relationName, int[] pref_list, int pref_list_length, IndexFile[] index_file_list, int n_pages, Heapfile dataFile, int numOfColumns, String outTableName,HashMap<String, TableMetadata> tableMetadataMap)
             throws Exception {
 
-        FldSpec[] projlist = new FldSpec[numOfColumns];
-        RelSpec rel = new RelSpec(RelSpec.outer);
-        for(int i =0; i < numOfColumns;i++) {
-            projlist[i] = new FldSpec(rel, i+1);
-        }
-        CondExpr[] expr = new CondExpr[2];
-        expr[0] = null;
-        expr[1] = null;
+        if(outTableName.equals("") || tableMetadataMap.get(outTableName)==null) {
 
-        IndexScan[] iscan = new IndexScan[pref_list_length];
-        for(int i = 0; i < pref_list_length; i++)
-        {
-            try {
-                iscan[i] = new IndexScan(new IndexType(IndexType.B_Index), relationName, "BTreeIndexFile" + Integer.toString(pref_list[i]),
-                        in1, t1_str_sizes, numOfColumns, numOfColumns, projlist, expr, numOfColumns, false);
+            FldSpec[] projlist = new FldSpec[numOfColumns];
+            RelSpec rel = new RelSpec(RelSpec.outer);
+            for (int i = 0; i < numOfColumns; i++) {
+                projlist[i] = new FldSpec(rel, i + 1);
             }
-            catch (Exception e) {
+            CondExpr[] expr = new CondExpr[2];
+            expr[0] = null;
+            expr[1] = null;
+
+            IndexScan[] iscan = new IndexScan[pref_list_length];
+
+
+            for (int i = 0; i < pref_list_length; i++) {
+
+                try {
+                    iscan[i] = new IndexScan(new IndexType(IndexType.B_Index), relationName, relationName + "UNCLUSTBTREE" + Integer.toString(pref_list[i] + 1),
+                            in1, t1_str_sizes, numOfColumns, numOfColumns, projlist, expr, numOfColumns, false);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+            Heapfile tempHeapFile = null;
+            try {
+                tempHeapFile = new Heapfile(tempHeapFileName);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            Tuple temp = null;
+            Tuple scanTuple = new Tuple();
+            try {
+                scanTuple.setHdr((short) numOfColumns, in1, t1_str_sizes);
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 
-        }
+            int tupleSize = scanTuple.size();
 
-        Heapfile tempHeapFile = null;
-        try {
-            tempHeapFile = new Heapfile(tempHeapFileName);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        Tuple temp = null;
-        Tuple scanTuple = new Tuple();
-        try {
-            scanTuple.setHdr((short) numOfColumns, in1, t1_str_sizes);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+            HashMap<Tuple, Integer> tupleTracker = new HashMap<Tuple, Integer>();
 
-        int tupleSize = scanTuple.size();
+            if (pref_list_length == 1) {
+                // everything is a skyline candidate, so just insert the sorted records to a temp heap file and pass it to Nested Loop Sky
+                while ((temp = iscan[0].get_next()) != null) {
+                    scanTuple.tupleCopy(temp);
+                    tempHeapFile.insertRecord(scanTuple.returnTupleByteArray());
+                }
+            } else {
+                // find candidates and push to the heap file
+                // get tuple from each index file and add to hashmap. If already present, increment the count.
+                // Once count reach number of preference attribute length, then break
+                boolean continueWhile = true;
+                while (continueWhile) {
 
-        HashMap<Tuple,Integer> tupleTracker = new HashMap<Tuple, Integer>();
-
-        if(pref_list_length ==1) {
-            // everything is a skyline candidate, so just insert the sorted records to a temp heap file and pass it to Nested Loop Sky
-            while((temp= iscan[0].get_next())!=null){
-                scanTuple.tupleCopy(temp);
-                tempHeapFile.insertRecord(scanTuple.returnTupleByteArray());
-            }
-        } else {
-            // find candidates and push to the heap file
-            // get tuple from each index file and add to hashmap. If already present, increment the count.
-            // Once count reach number of preference attribute length, then break
-            boolean continueWhile = true;
-            while(continueWhile) {
-
-                for (int i = 0; i < pref_list_length; i++) {
-                    scanTuple = new Tuple();
-                    try {
-                        scanTuple.setHdr((short) numOfColumns, in1, t1_str_sizes);
-                    }
-                    catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    scanTuple.tupleCopy(iscan[i].get_next());
-                    //scanTuple.print(in1);
-                    if(!tupleTracker.containsKey(scanTuple)) {
-                        tupleTracker.put(scanTuple,1);
-                    } else{
-                        int count = tupleTracker.get(scanTuple);
-                        count++;
-                        tupleTracker.put(scanTuple,count);
-                        if(count == pref_list_length) {
-                            continueWhile= false;
-                            break;
+                    for (int i = 0; i < pref_list_length; i++) {
+                        scanTuple = new Tuple();
+                        try {
+                            scanTuple.setHdr((short) numOfColumns, in1, t1_str_sizes);
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                    }
+                        scanTuple.tupleCopy(iscan[i].get_next());
+                        //scanTuple.print(in1);
+                        if (!tupleTracker.containsKey(scanTuple)) {
+                            tupleTracker.put(scanTuple, 1);
+                        } else {
+                            int count = tupleTracker.get(scanTuple);
+                            count++;
+                            tupleTracker.put(scanTuple, count);
+                            if (count == pref_list_length) {
+                                continueWhile = false;
+                                break;
+                            }
+                        }
 
+                    }
+                }
+                // insert to heap file from HashMap
+                Tuple[] candidateTuples = tupleTracker.keySet().toArray(new Tuple[0]);
+                for (int i = 0; i < candidateTuples.length; i++) {
+                    //candidateTuples[i].print(in1);
+                    tempHeapFile.insertRecord(candidateTuples[i].returnTupleByteArray());
                 }
             }
-            // insert to heap file from HashMap
-            Tuple[] candidateTuples = tupleTracker.keySet().toArray(new Tuple[0]);
-            for (int i =0; i < candidateTuples.length;i++){
-                //candidateTuples[i].print(in1);
-                tempHeapFile.insertRecord(candidateTuples[i].returnTupleByteArray());
+
+            //close the index scan since we got all candidates in list
+            for (int k = 0; k < iscan.length; k++) {
+                iscan[k].close();
             }
-        }
 
-        //close the index scan since we got all candidates in list
-        for(int k=0; k < iscan.length;k++){
-            iscan[k].close();
-        }
+            //create iterator
 
-        //create iterator
-
-        try {
-            am = new FileScan(tempHeapFileName, in1, t1_str_sizes, (short) numOfColumns, (short) numOfColumns, projlist, null);
-        } catch (Exception e) {
-            System.err.println("" + e);
-        }
+            try {
+                am = new FileScan(tempHeapFileName, in1, t1_str_sizes, (short) numOfColumns, (short) numOfColumns, projlist, null);
+            } catch (Exception e) {
+                System.err.println("" + e);
+            }
 
 
-        BlockNestedLoopsSky bnl = new BlockNestedLoopsSky( in1,
-                numOfColumns,
-                t1_str_sizes,
-                am,  // This will be the filescan iterator that returns records one by one.
-                tempHeapFileName,
-                pref_list, //Preference List
-                pref_list_length, //Preference List Length
-                n_pages);
-        try {
-            while((scanTuple=bnl.get_next())!=null) {
-                scanTuple.print(in1);
-            }}
-        catch(Exception e) {
-            e.printStackTrace();
-        }
-        bnl.close();
+            BlockNestedLoopsSky bnl = new BlockNestedLoopsSky(in1,
+                    numOfColumns,
+                    t1_str_sizes,
+                    am,  // This will be the filescan iterator that returns records one by one.
+                    tempHeapFileName,
+                    pref_list, //Preference List
+                    pref_list_length, //Preference List Length
+                    n_pages);
+            Heapfile outHeap = null;
+            if (!outTableName.equals("")) {
+                outHeap = new Heapfile(outTableName);
+            }
+            try {
+                while ((scanTuple = bnl.get_next()) != null) {
+                    scanTuple.print(in1);
+                    if (!outTableName.equals("")) {
+                        outHeap.insertRecord(scanTuple.returnTupleByteArray());
+                    }
+                }
+                if (!outTableName.equals("")) {
+                    //update the table metadata map
+                    TableMetadata tm = new TableMetadata(outTableName, in1, t1_str_sizes);
+                    tableMetadataMap.put(outTableName, tm);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            bnl.close();
 
-        am.close();
+            am.close();
 
 //        //call nestedloopsky
 //        NestedLoopsSky nls = new NestedLoopsSky( in1,
@@ -163,7 +175,9 @@ public class BTreeSky extends Iterator implements GlobalConst {
 //        }
 //        nls.close();
 //        am.close();
-
+        } else {
+            System.out.println("Output table name mentioned already exist. Please enter a new table name ");
+        }
 
     }
 

@@ -4,16 +4,19 @@ import btree.IndexFile;
 import global.AttrType;
 import global.GlobalConst;
 import global.IndexType;
+import global.TableMetadata;
+import heap.Heapfile;
 import heap.Tuple;
 import index.IndexException;
 import index.IndexScan;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 public class BTreeSortedSky extends Iterator implements GlobalConst  {
 
     public BTreeSortedSky (AttrType[] in1, int numOfColumns, short[] t1_str_sizes, Iterator am1, java.lang.String
-            relationName, int[] pref_list, int pref_list_length, IndexFile index_file_list, int n_pages)
+            relationName, int[] pref_list, int pref_list_length, IndexFile index_file_list, int n_pages, String outTableName, HashMap<String, TableMetadata> tableMetadataMap)
             throws Exception {
 
         FldSpec[] projlist = new FldSpec[numOfColumns];
@@ -55,10 +58,24 @@ public class BTreeSortedSky extends Iterator implements GlobalConst  {
                 pref_list, //Preference List
                 pref_list_length, //Preference List Length
                 n_pages);
+
+        Heapfile outHeap =null;
+        if(!outTableName.equals("")) {
+            outHeap = new Heapfile(outTableName);
+        }
         try {
             while((t1=bnl.get_next())!=null) {
                    t1.print(in1);
-            }}
+                if(!outTableName.equals("")) {
+                    outHeap.insertRecord(t1.returnTupleByteArray());
+                }
+            }
+            if(!outTableName.equals("")){
+                //update the table metadata map
+                TableMetadata tm = new TableMetadata(outTableName, in1, t1_str_sizes);
+                tableMetadataMap.put(outTableName, tm);
+            }
+        }
         catch(Exception e) {
             e.printStackTrace();
         }

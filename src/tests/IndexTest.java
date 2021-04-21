@@ -300,7 +300,7 @@ class IndexDriver extends TestDriver
       //BTreeSky testing
       short[] x = {};
       BTreeSky bts = new BTreeSky(attrType, numOfColumns, x, am, "test1.in",
-              pref_list, pref_list.length, BTreeFileList, numOfPages,f,numOfColumns);
+              pref_list, pref_list.length, BTreeFileList, numOfPages,f,numOfColumns,"",null);
     }
     catch (Exception e)
     {
@@ -483,7 +483,7 @@ class IndexDriver extends TestDriver
 
       //BTreeSky testing
       short[] x = {};
-      BTreeSortedSky bts = new BTreeSortedSky(attrType, numOfColumns, x, am, "test2.in",pref_list, pref_list.length, btf, numOfPages);
+      BTreeSortedSky bts = new BTreeSortedSky(attrType, numOfColumns, x, am, "test2.in",pref_list, pref_list.length, btf, numOfPages,"",null);
     }
     catch (Exception e)
     {

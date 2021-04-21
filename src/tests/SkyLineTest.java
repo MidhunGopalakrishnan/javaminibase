@@ -491,7 +491,7 @@ class SkyLineTestDriver extends TestDriver
             System.out.println("Printing BTreeSky elements for " + fileName);
 
             BTreeSky bts = new BTreeSky(Ptypes, numOfColumns, x, am, heapFileName,
-                    preflist, preflist.length, BTreeFileList, numOfPages, f,numOfColumns);
+                    preflist, preflist.length, BTreeFileList, numOfPages, f,numOfColumns,"",null);
             bts.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -586,7 +586,7 @@ class SkyLineTestDriver extends TestDriver
             //BTreeSky testing
             System.out.println();
             System.out.println("Printing BTreeSortedSky elements for " + fileName);
-            BTreeSortedSky bts = new BTreeSortedSky(Ptypes, numOfColumns, x, am, heapFileName, preflist, preflist.length, btf, numOfPages);
+            BTreeSortedSky bts = new BTreeSortedSky(Ptypes, numOfColumns, x, am, heapFileName, preflist, preflist.length, btf, numOfPages,"",null);
             bts.close();
         } catch (Exception e) {
             e.printStackTrace();
@@ -765,7 +765,7 @@ class SkyLineTestDriver extends TestDriver
                 short[] x = {};
                 //BTreeSky testing
                 BTreeSky bts = new BTreeSky(Ptypes, numOfColumns, x, am, heapFileName,
-                        preflist, preflist.length, BTreeFileList, numOfPages, f,numOfColumns);
+                        preflist, preflist.length, BTreeFileList, numOfPages, f,numOfColumns,"",null);
                 bts.close();
             } catch (Exception e) {
                 e.printStackTrace();

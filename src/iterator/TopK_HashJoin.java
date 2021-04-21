@@ -2,10 +2,7 @@ package iterator;
 
 import btree.*;
 import bufmgr.PageNotReadException;
-import global.AttrType;
-import global.GlobalConst;
-import global.IndexType;
-import global.RID;
+import global.*;
 import heap.*;
 import index.IndexException;
 import index.IndexScan;
@@ -16,6 +13,8 @@ import java.util.*;
 public class TopK_HashJoin extends Iterator implements GlobalConst {
 
     private static short REC_LEN1 = 15;
+    private static final int TOPK_COLUMN_LENGTH = 6;
+    private static short STR_LEN = 10;
 
     public TopK_HashJoin(
             AttrType[] in1, int len_in1, short[] t1_str_sizes, FldSpec joinAttr1,
@@ -25,289 +24,291 @@ public class TopK_HashJoin extends Iterator implements GlobalConst {
             java.lang.String relationName1,
             java.lang.String relationName2,
             int k,
-            int n_pages,
-            int numOfColumns1,
-            int numOfColumns2,int joinAttrTable1,int joinAttrTable2,int mergeAttrTable1,int mergeAttrTable2,Heapfile table1,Heapfile table2
+            int n_pages,String outputTableName, HashMap<String, TableMetadata> tableMetadataMap
     ) {
-//        //set projection list for two index scan objects
-//        FldSpec[] projlistTable1 = new FldSpec[2];
-//        projlistTable1[0] = joinAttr1;
-//        projlistTable1[1] = mergeAttr1;
-//        FldSpec[] projlistTable2 = new FldSpec[2];
-//        projlistTable2[0] = joinAttr2;
-//        projlistTable2[1] = mergeAttr2;
+        if(outputTableName.equals("") || tableMetadataMap.get(outputTableName)==null) {
+            int joinAttrTable1 = joinAttr1.offset;
+            int mergeAttrTable1 = mergeAttr1.offset;
+            int joinAttrTable2 = joinAttr2.offset;
+            int mergeAttrTable2 = mergeAttr2.offset;
 
-        FldSpec[] projlist1 = new FldSpec[numOfColumns1];
-        RelSpec rel1 = new RelSpec(RelSpec.outer);
-        for(int i =0; i < numOfColumns1;i++) {
-            projlist1[i] = new FldSpec(rel1, i+1);
-        }
 
-        FldSpec[] projlist2 = new FldSpec[numOfColumns2];
-        RelSpec rel2 = new RelSpec(RelSpec.outer);
-        for(int i =0; i < numOfColumns1;i++) {
-            projlist2[i] = new FldSpec(rel2, i+1);
-        }
+            FldSpec[] projlist1 = new FldSpec[len_in1];
+            RelSpec rel1 = new RelSpec(RelSpec.outer);
+            for (int i = 0; i < len_in1; i++) {
+                projlist1[i] = new FldSpec(rel1, i + 1);
+            }
 
-        // TODO : set to null as of now considering user input will not have a where clause attached
-        CondExpr[] expr = new CondExpr[2];
-        expr[0] = null;
-        expr[1] = null;
+            FldSpec[] projlist2 = new FldSpec[len_in2];
+            RelSpec rel2 = new RelSpec(RelSpec.outer);
+            for (int i = 0; i < len_in2; i++) {
+                projlist2[i] = new FldSpec(rel2, i + 1);
+            }
 
-        IndexScan[] iscan = new IndexScan[2];
+            CondExpr[] expr = new CondExpr[2];
+            expr[0] = null;
+            expr[1] = null;
 
-        try {
-            iscan[0] = new IndexScan(new IndexType(IndexType.B_Index), relationName1, "BTreeIndex" + relationName1,
-                    in1, t1_str_sizes, numOfColumns1, numOfColumns1, projlist1, expr, numOfColumns1, false);
-            iscan[1] = new IndexScan(new IndexType(IndexType.B_Index), relationName2, "BTreeIndex" + relationName2,
-                    in2, t2_str_sizes, numOfColumns2, numOfColumns2, projlist2, expr, numOfColumns2, false);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            IndexScan[] iscan = new IndexScan[2];
 
-        boolean continueWhile = true;
-        int runningKCount =0;
-//        int countK = 0;
-//        HashMap<String,Integer> tupleTracker = new HashMap<String, Integer>();
+            try {
+                iscan[0] = new IndexScan(new IndexType(IndexType.B_Index), relationName1, relationName1 + "UNCLUSTBTREE" + mergeAttrTable1,
+                        in1, t1_str_sizes, len_in1, len_in1, projlist1, expr, len_in1, false);
+                iscan[1] = new IndexScan(new IndexType(IndexType.B_Index), relationName2, relationName2 + "UNCLUSTBTREE" + mergeAttrTable2,
+                        in2, t2_str_sizes, len_in2, len_in2, projlist2, expr, len_in2, false);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
-        try {
-//            while (continueWhile) {
-//
-//                for(int i=0; i < 2; i++) {
-//                    Tuple scanTuple = new Tuple();
-//                    try {
-//                        scanTuple.setHdr((short) numOfColumns1, in1, t1_str_sizes);
-//                    } catch (Exception e) {
-//                        e.printStackTrace();
-//                    }
-//                    scanTuple.tupleCopy(iscan[i].get_next());
-//                    if (scanTuple == null && countK < k) {
-//                        System.out.println("No Top K elements can be found from these two tables");
-//                    } else if (scanTuple != null) {
-//                        scanTuple.print(in1);
-//                        if (!tupleTracker.containsKey(scanTuple.getStrFld(1))) { //TODO : change hardcoded value of 1. First value is not always the join attribute, also it wont be string always
-//                            int position = mergeAttrTable1;
-//                            if(i==1){
-//                              position = mergeAttrTable2;
-//                            }
-//                            tupleTracker.put(scanTuple.getStrFld(1), scanTuple.getIntFld(position));
-//                        } else {
-//                            int position = mergeAttrTable1;
-//                            if(i==1){
-//                                position = mergeAttrTable2;
-//                            }
-//                            int value = tupleTracker.get(scanTuple.getStrFld(1));
-//                            tupleTracker.put(scanTuple.getStrFld(1), (value+scanTuple.getIntFld(position))/2);
-//                            runningKCount++;
-//                            if (runningKCount == k) {
-//                                continueWhile = false;
-//                                break;
-//                            }
-//                        }
-//                    }
-//                }
-//            }
+            boolean continueWhile = true;
+            int runningKCount = 0;
 
-            HashMap<String,ArrayList<Integer>[]> tupleTrackerV2 = new HashMap<>();
-            while (continueWhile) {
-                for(int i=0; i < 2; i++) {
-                    Tuple scanTuple = new Tuple();
-                    try {
-                        scanTuple.setHdr((short) numOfColumns1, in1, t1_str_sizes);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    scanTuple.tupleCopy(iscan[i].get_next());
-                    if (scanTuple == null && runningKCount < k) {
-                        System.out.println("No Top K elements can be found from these two tables");
-                    } else if (scanTuple != null) {
-                        scanTuple.print(in1);
-                        if (!tupleTrackerV2.containsKey(scanTuple.getStrFld(1))) { //TODO : change hardcoded value of 1. First value is not always the join attribute, also it wont be string always
-                            int position;
-                            ArrayList<Integer> RelList1 = new ArrayList<>();
-                            ArrayList<Integer> RelList2 = new ArrayList<>();
-                            ArrayList<Integer> MatchingCount = new ArrayList<>();
-                            MatchingCount.add(0);
-                            ArrayList[] combinedList = new ArrayList[3];
-                            combinedList[0] = RelList1;
-                            combinedList[1] = RelList2;
-                            combinedList[2] = MatchingCount;
-                            if(i==0){
-                                position = mergeAttrTable1;
-                                RelList1.add(scanTuple.getIntFld(position));
-                            } else {
-                                position = mergeAttrTable2;
-                                RelList2.add(scanTuple.getIntFld(position));
+            try {
+
+                HashMap<String, ArrayList<Integer>[]> tupleTrackerV2 = new HashMap<>();
+                while (continueWhile) {
+                    for (int i = 0; i < 2; i++) {
+                        Tuple scanTuple = new Tuple();
+                        if (i == 0) {
+                            try {
+                                scanTuple.setHdr((short) len_in1, in1, t1_str_sizes);
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
-                            tupleTrackerV2.put(scanTuple.getStrFld(1),combinedList );
                         } else {
-                            int position;
-                            ArrayList<Integer> RelList1 = new ArrayList<>();
-                            ArrayList<Integer> RelList2 = new ArrayList<>();
-                            ArrayList<Integer> MatchingCount = new ArrayList<>();
-                            ArrayList[] combinedList = new ArrayList[3];
-                            if(i==0){
-                                position = mergeAttrTable1;
-                                combinedList = tupleTrackerV2.get(scanTuple.getStrFld(1));
-                                RelList1 = combinedList[0];
-                                RelList1.add(scanTuple.getIntFld(position));
-                                RelList2 = combinedList[1];
-                                int matchingCount = RelList1.size()*RelList2.size();
-                                MatchingCount = combinedList[2];
-                                if(MatchingCount!=null && MatchingCount.size()==0) {
-                                    MatchingCount.add(matchingCount);
-                                } else{
-                                    MatchingCount.remove(0);
-                                    MatchingCount.add(matchingCount);
-                                }
+                            try {
+                                scanTuple.setHdr((short) len_in2, in2, t2_str_sizes);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        scanTuple.tupleCopy(iscan[i].get_next());
+                        if (scanTuple == null && runningKCount < k) {
+                            System.out.println("No Top K elements can be found from these two tables");
+                        } else if (scanTuple != null) {
+                            int joinAttrPosition = 0;
+                            if (i == 0) {
+                                joinAttrPosition = joinAttrTable1;
                             } else {
-                                position = mergeAttrTable2;
-                                combinedList = tupleTrackerV2.get(scanTuple.getStrFld(1));
-                                RelList1 = combinedList[0];
-                                RelList2 = combinedList[1];
-                                RelList2.add(scanTuple.getIntFld(position));
-                                int matchingCount = RelList1.size()*RelList2.size();
-                                MatchingCount = combinedList[2];
-                                if(MatchingCount!=null && MatchingCount.size()==0) {
-                                    MatchingCount.add(matchingCount);
-                                } else{
-                                    MatchingCount.remove(0);
-                                    MatchingCount.add(matchingCount);
-                                }
+                                joinAttrPosition = joinAttrTable2;
                             }
-                            //iterate through map and find sum of matches made so far
-                            java.util.Iterator keySetIterator = tupleTrackerV2.keySet().iterator();
-                            runningKCount =0;
-                            while (keySetIterator.hasNext()){
-                                String key = (String)keySetIterator.next();
-                                ArrayList[] combinedList2 = new ArrayList[3];
-                                combinedList2 = (ArrayList[]) tupleTrackerV2.get(key);
-                                ArrayList matchList = combinedList2[2];
-                                if(matchList!=null) {
-                                    runningKCount += (Integer) matchList.get(0);
+                            if (!tupleTrackerV2.containsKey(scanTuple.getStrFld(joinAttrPosition))) {
+                                int position;
+                                ArrayList<Integer> RelList1 = new ArrayList<>();
+                                ArrayList<Integer> RelList2 = new ArrayList<>();
+                                ArrayList<Integer> MatchingCount = new ArrayList<>();
+                                MatchingCount.add(0);
+                                ArrayList[] combinedList = new ArrayList[3];
+                                combinedList[0] = RelList1;
+                                combinedList[1] = RelList2;
+                                combinedList[2] = MatchingCount;
+                                if (i == 0) {
+                                    position = mergeAttrTable1;
+                                    RelList1.add(scanTuple.getIntFld(position));
+                                } else {
+                                    position = mergeAttrTable2;
+                                    RelList2.add(scanTuple.getIntFld(position));
                                 }
-                            }
+                                tupleTrackerV2.put(scanTuple.getStrFld(joinAttrPosition), combinedList);
+                            } else {
+                                int position;
+                                ArrayList<Integer> RelList1 = new ArrayList<>();
+                                ArrayList<Integer> RelList2 = new ArrayList<>();
+                                ArrayList<Integer> MatchingCount = new ArrayList<>();
+                                ArrayList[] combinedList = new ArrayList[3];
+                                if (i == 0) {
+                                    position = mergeAttrTable1;
+                                    combinedList = tupleTrackerV2.get(scanTuple.getStrFld(joinAttrPosition));
+                                    RelList1 = combinedList[0];
+                                    RelList1.add(scanTuple.getIntFld(position));
+                                    RelList2 = combinedList[1];
+                                    int matchingCount = RelList1.size() * RelList2.size();
+                                    MatchingCount = combinedList[2];
+                                    if (MatchingCount != null && MatchingCount.size() == 0) {
+                                        MatchingCount.add(matchingCount);
+                                    } else {
+                                        MatchingCount.remove(0);
+                                        MatchingCount.add(matchingCount);
+                                    }
+                                } else {
+                                    position = mergeAttrTable2;
+                                    combinedList = tupleTrackerV2.get(scanTuple.getStrFld(joinAttrPosition));
+                                    RelList1 = combinedList[0];
+                                    RelList2 = combinedList[1];
+                                    RelList2.add(scanTuple.getIntFld(position));
+                                    int matchingCount = RelList1.size() * RelList2.size();
+                                    MatchingCount = combinedList[2];
+                                    if (MatchingCount != null && MatchingCount.size() == 0) {
+                                        MatchingCount.add(matchingCount);
+                                    } else {
+                                        MatchingCount.remove(0);
+                                        MatchingCount.add(matchingCount);
+                                    }
+                                }
+                                //iterate through map and find sum of matches made so far
+                                java.util.Iterator keySetIterator = tupleTrackerV2.keySet().iterator();
+                                runningKCount = 0;
+                                while (keySetIterator.hasNext()) {
+                                    String key = (String) keySetIterator.next();
+                                    ArrayList[] combinedList2 = new ArrayList[3];
+                                    combinedList2 = (ArrayList[]) tupleTrackerV2.get(key);
+                                    ArrayList matchList = combinedList2[2];
+                                    if (matchList != null) {
+                                        runningKCount += (Integer) matchList.get(0);
+                                    }
+                                }
 
-                            if (runningKCount >= k) {
-                                continueWhile = false;
-                                break;
+                                if (runningKCount >= k) {
+                                    continueWhile = false;
+                                    break;
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            try{
-                iscan[0].close();
-                iscan[1].close();
-            } catch(Exception e){
+                try {
+                    iscan[0].close();
+                    iscan[1].close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Runtime.getRuntime().exit(1);
+                }
+
+//                System.out.println("Content created");
+                if (tupleTrackerV2.size() != 0) {
+                    //vet all elements in hashmap ie find A+B/2 for all top k elements
+                    //create index files on the join attribute based on table 1 and table 2
+                    BTreeFile btf1 = new BTreeFile(relationName1 + "UNCLUSTBTREE" + joinAttrTable1);
+                    BTreeFile btf2 = new BTreeFile(relationName2 + "UNCLUSTBTREE" + joinAttrTable2);
+                    Heapfile hf1 = new Heapfile(relationName1);
+                    Heapfile hf2 = new Heapfile(relationName2);
+
+                    if (btf1 != null && btf2 != null) {
+
+                        Tuple scanTuple1 = new Tuple();
+                        try {
+                            scanTuple1.setHdr((short) in1.length, in1, t1_str_sizes);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+                        Tuple scanTuple2 = new Tuple();
+                        try {
+                            scanTuple2.setHdr((short) in2.length, in2, t2_str_sizes);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        ArrayList<TopKData> dataList = new ArrayList<>();
+                        for (String key : tupleTrackerV2.keySet()) {
+                            KeyClass keyC = new StringKey(key);
+                            BTFileScan bt1 = btf1.new_scan(keyC, keyC);
+                            BTFileScan bt2 = btf2.new_scan(keyC, keyC);
+                            KeyDataEntry kd1;
+                            KeyDataEntry kd2;
+                            ArrayList<RID> ridList1 = new ArrayList<>();
+                            ArrayList<RID> ridList2 = new ArrayList<>();
+                            //store RIDs
+                            while ((kd1 = bt1.get_next()) != null) {
+                                LeafData leafData1 = (LeafData) kd1.data;
+                                RID rid1 = new RID(leafData1.getData().pageNo, leafData1.getData().slotNo);
+                                if (!ridList1.contains(rid1)) {
+                                    ridList1.add(rid1);
+                                }
+                            }
+
+                            while ((kd2 = bt2.get_next()) != null) {
+                                LeafData leafData2 = (LeafData) kd2.data;
+                                RID rid2 = new RID(leafData2.getData().pageNo, leafData2.getData().slotNo);
+                                if (!ridList2.contains(rid2)) {
+                                    ridList2.add(rid2);
+                                }
+                            }
+
+                            for (int jj = 0; jj < ridList1.size(); jj++) {
+                                for (int kk = 0; kk < ridList2.size(); kk++) {
+                                    scanTuple1.tupleCopy(hf1.getRecord(ridList1.get(jj)));
+                                    scanTuple2.tupleCopy(hf2.getRecord(ridList2.get(kk)));
+                                    if (!scanTuple1.getStrFld(joinAttrTable1).equals(scanTuple2.getStrFld(joinAttrTable2))) {
+                                        continue;
+                                    }
+//                                    scanTuple1.print(in1);
+//                                    scanTuple2.print(in2);
+                                    TopKData tt = new TopKData(scanTuple1.getStrFld(joinAttrTable1), scanTuple1.getIntFld(mergeAttrTable1), mergeAttrTable1, scanTuple2.getIntFld(mergeAttrTable2), mergeAttrTable2);
+                                    dataList.add(tt);
+                                }
+                            }
+                        }
+
+                        Collections.sort(dataList);
+                        System.out.println("TopK Results : ");
+                        System.out.println("Join_Attribute | Preference_Attribute1 | Preference_Attribute2 | Average_of_Preference_Attribute");
+                        Heapfile outHeap = null;
+                        AttrType[] outAttrType = new AttrType[TOPK_COLUMN_LENGTH];
+                        short[] outAttrSize =null;
+                        Tuple outTuple = new Tuple();
+                        if (!outputTableName.equals("")){
+                            if (!outputTableName.equals("")) {
+                                outHeap = new Heapfile(outputTableName);
+                                //populate the attrType and attrSize and build a Tuple Header
+                                outAttrType[0] = new AttrType(in1[joinAttrTable1-1].attrType);
+                                outAttrType[1] = new AttrType(in1[mergeAttrTable1-1].attrType);
+                                outAttrType[2] = new AttrType(AttrType.attrInteger);
+                                outAttrType[3] = new AttrType(in2[mergeAttrTable2-1].attrType);
+                                outAttrType[4] = new AttrType(AttrType.attrInteger);
+                                outAttrType[5] = new AttrType(AttrType.attrReal);
+
+                                if(in1[joinAttrTable1-1].attrType==AttrType.attrString){
+                                    outAttrSize = new short[1];
+                                    outAttrSize[0] = STR_LEN;
+                                }
+
+                                try {
+                                    outTuple.setHdr((short) outAttrType.length, outAttrType, outAttrSize);
+                                } catch (Exception e) {
+                                    System.err.println("*** error in Tuple.setHdr() ***");
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        }
+                        for (int i = 0; i < k; i++) {
+                            dataList.get(i).print();
+                            if (!outputTableName.equals("")){
+
+                                TopKData tk = dataList.get(i);
+                                if(in1[joinAttrTable1-1].attrType==AttrType.attrString) {
+                                    outTuple.setStrFld(1,tk.getJoinAttr());
+                                } else {
+                                    outTuple.setIntFld(1,Integer.parseInt(tk.getJoinAttr()));
+                                }
+
+                                outTuple.setIntFld(2,tk.getMergeAttr1());
+                                outTuple.setIntFld(3,tk.getMergeAttrPosition1());
+                                outTuple.setIntFld(4,tk.getMergeAttr2());
+                                outTuple.setIntFld(5,tk.getMergeAttrPosition2());
+                                outTuple.setFloFld(6,tk.getAverage());
+
+                                outHeap.insertRecord(outTuple.returnTupleByteArray());
+                            }
+                        }
+                        if (!outputTableName.equals("")) {
+                            //update the table metadata map
+                            TableMetadata tm = new TableMetadata(outputTableName, outAttrType, outAttrSize);
+                            tableMetadataMap.put(outputTableName, tm);
+                        }
+                    }
+                } else {
+                    System.out.println("No index present for attribute " + joinAttr1 + " for table " + relationName1 + "/" + relationName2 + ". Please make sure an index is present for the join attribute.");
+                }
+
+            } catch (Exception e) {
                 e.printStackTrace();
                 Runtime.getRuntime().exit(1);
             }
-
-//            if (tupleTracker.size()==k){
-//                //first k in the list are the top k elements
-//                printResult(tupleTracker);
-//
-//            }
-//            else if (tupleTracker.size()>k){
-             if(tupleTrackerV2.size()!=0){
-                //vet all elements in hashmap ie find A+B/2 for all top k elements
-                //create index files on the join attribute based on table 1 and table 2
-                BTreeFile btf1 = createIndexFile(table1,"table1",joinAttrTable1,numOfColumns1);
-                BTreeFile btf2 = createIndexFile(table2,"table2",joinAttrTable2,numOfColumns2);
-
-                Tuple scanTuple1 = new Tuple();
-                try {
-                    scanTuple1.setHdr((short) numOfColumns1, in1, t1_str_sizes);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-
-                Tuple scanTuple2 = new Tuple();
-                try {
-                    scanTuple2.setHdr((short) numOfColumns2, in2, t2_str_sizes);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-                ArrayList<TopKData> dataList = new ArrayList<>();
-                 for(String key : tupleTrackerV2.keySet()){
-                     KeyClass keyC = new StringKey(key);
-                     BTFileScan bt1 = btf1.new_scan(keyC,keyC);
-                     BTFileScan bt2 = btf2.new_scan(keyC,keyC);
-                     KeyDataEntry kd1;
-                     KeyDataEntry kd2;
-                     while ((kd1 = bt1.get_next())!=null){
-                         while ((kd2 = bt2.get_next())!=null){
-                             LeafData leafData1 = (LeafData) kd1.data;
-                             RID rid1 = new RID(leafData1.getData().pageNo,leafData1.getData().slotNo);
-                             scanTuple1.tupleCopy(table1.getRecord(rid1));
-                             scanTuple1.print(in1);
-                             LeafData leafData2 = (LeafData) kd2.data;
-                             RID rid2 = new RID(leafData2.getData().pageNo,leafData2.getData().slotNo);
-                             scanTuple2.tupleCopy(table2.getRecord(rid2));
-                             scanTuple2.print(in2);
-                             int[] prefList = new int[2];
-                             prefList[0] = mergeAttrTable1;
-                             prefList[1] = mergeAttrTable2;
-                             TopKData tt = new TopKData(scanTuple1.getStrFld(1),scanTuple1.getIntFld(2),scanTuple1.getIntFld(3),scanTuple2.getIntFld(2),scanTuple2.getIntFld(3),prefList);
-                             dataList.add(tt);
-                         }
-                     }
-                 }
-
-                 Collections.sort(dataList);
-                 for (int i =0; i < k;i++){
-                        dataList.get(i).print();
-                 }
-//                HashMap<String,Float> topKMap = new HashMap<>();
-
-//                for(String key : tupleTrackerV2.keySet()){
-//                    //for each key compute average and fix the top k elements
-//                    KeyClass keyC = new StringKey(key);
-//                    BTFileScan bt1 = btf1.new_scan(keyC,keyC);
-//                    BTFileScan bt2 = btf2.new_scan(keyC,keyC);
-//                    KeyDataEntry kd1 = bt1.get_next();
-//                    KeyDataEntry kd2 = bt2.get_next();
-//                    if(kd1!=null && kd2!=null) {
-//                        LeafData leafData1 = (LeafData) kd1.data;
-//                        RID rid1 = new RID(leafData1.getData().pageNo,leafData1.getData().slotNo);
-//                        scanTuple1.tupleCopy(table1.getRecord(rid1));
-////                        scanTuple1.print(in1);
-//                        int value1 = scanTuple1.getIntFld(mergeAttrTable1);
-//                        LeafData leafData2 = (LeafData) kd2.data;
-//                        RID rid2 = new RID(leafData2.getData().pageNo,leafData2.getData().slotNo);
-//                        scanTuple2.tupleCopy(table2.getRecord(rid2));
-////                        scanTuple2.print(in2);
-//                        int value2 = scanTuple2.getIntFld(mergeAttrTable2);
-//                        float avg = (float)(value1+value2)/2;
-//                        topKMap.put(scanTuple1.getStrFld(joinAttrTable1),avg);
-//                    }
-//                }
-
-//                LinkedList<Map.Entry<String,Float>> topKList = new LinkedList<Map.Entry<String,Float>>(topKMap.entrySet());
-//                Collections.sort(topKList, new Comparator<Map.Entry<String, Float>>() {
-//                    @Override
-//                    public int compare(Map.Entry<String, Float> o1, Map.Entry<String, Float> o2) {
-//                        return (o2.getValue()).compareTo(o1.getValue());
-//                    }
-//                });
-
-                // print first K elements from LinkedList
-//                for(int j=0; j< k; j++) {
-//                    Map.Entry<String,Float> value = topKList.get(j);
-//                    System.out.println(value.getKey() + " ---> " + value.getValue());
-//                }
-//                for(Map.Entry<String,Float> value : topKList){
-//                        System.out.println(value.getKey() + " ---> " + value.getValue());
-//                }
-            }
-
-        }catch(Exception e){
-            e.printStackTrace();
-            Runtime.getRuntime().exit(1);
+        } else {
+            System.out.println("Output table name mentioned already exist. Please enter a new table name ");
         }
-
 
     }
 
@@ -375,106 +376,62 @@ public class TopK_HashJoin extends Iterator implements GlobalConst {
     }
 }
 class TopKData implements Comparable {
-    String name;
-    int age1;
-    int weight1;
-    int age2;
-    int weight2;
-    int[] preference_attr = new int[2];
-    int value1;
-    int value2;
+    String joinAttr;
+    int mergeAttr1;
+    int mergeAttrPosition1;
+    int mergeAttr2;
+    int mergeAttrPosition2;
+    float average;
 
-    public int getValue1() {
-        return value1;
+
+    public TopKData(String joinAttr, int mergeAttr1, int mergeAttrPosition1, int mergeAttr2, int mergeAttrPosition2){
+        this.joinAttr = joinAttr;
+        this.mergeAttr1 = mergeAttr1;
+        this.mergeAttrPosition1 = mergeAttrPosition1;
+        this.mergeAttr2 = mergeAttr2;
+        this.mergeAttrPosition2 = mergeAttrPosition2;
+        this.average = ((float)mergeAttr1+(float)mergeAttr2)/2;
     }
 
-    public void setValue1(int value1) {
-        this.value1 = value1;
+    public String getJoinAttr() {
+        return joinAttr;
     }
 
-    public int getValue2() {
-        return value2;
+    public int getMergeAttr1() {
+        return mergeAttr1;
     }
 
-    public void setValue2(int value2) {
-        this.value2 = value2;
+    public int getMergeAttrPosition1() {
+        return mergeAttrPosition1;
     }
 
-    public TopKData(String name, int age1, int weight1, int age2, int weight2, int[] preference_attr){
-        this.setName(name);
-        this.setAge1(age1);
-        this.setWeight1(weight1);
-        this.setAge2(age2);
-        this.setWeight2(weight2);
-        this.setPreference_attr(preference_attr);
-        if(getPreference_attr()[0]==2) {
-            setValue1(getAge1());
-        } else if(getPreference_attr()[0]==3) {
-            setValue1(getWeight1());
-        }
-        if(getPreference_attr()[1]==2) {
-            setValue2(getAge2());
-        } else if(getPreference_attr()[1]==3) {
-            setValue2(getWeight2());
-        }
 
+    public int getMergeAttr2() {
+        return mergeAttr2;
     }
 
-    public int getAge1() {
-        return age1;
+    public int getMergeAttrPosition2() {
+        return mergeAttrPosition2;
     }
 
-    public void setAge1(int age1) {
-        this.age1 = age1;
-    }
-
-    public int getWeight1() {
-        return weight1;
-    }
-
-    public void setWeight1(int weight1) {
-        this.weight1 = weight1;
-    }
-
-    public int getAge2() {
-        return age2;
-    }
-
-    public void setAge2(int age2) {
-        this.age2 = age2;
-    }
-
-    public int getWeight2() {
-        return weight2;
-    }
-
-    public void setWeight2(int weight2) {
-        this.weight2 = weight2;
-    }
-
-    public int[] getPreference_attr() {
-        return preference_attr;
-    }
-
-    public void setPreference_attr(int[] preference_attr) {
-        this.preference_attr = preference_attr;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+    public float getAverage() {
+        return average;
     }
 
     public void print(){
-        System.out.println(getName()+" "+ getAge1()+ " "+ getWeight1() + " "+ getAge2() + " "+ getWeight2()+ " "+ ((getValue1()+getValue2())/2));
+        System.out.println(getJoinAttr()+" "+ getMergeAttr1()+"(Index Position : "+getMergeAttrPosition1()+")" +" "+ getMergeAttr2()+"(Index Position : "+getMergeAttrPosition2()+")" +" "+ getAverage());
     }
 
     @Override
     public int compareTo(Object o) {
 
-        return (((((TopKData)o).getValue1())+((TopKData)o).getValue2())- (this.getValue1()+this.getValue2()));
+        float diff = ((TopKData)o).getAverage() - this.getAverage();
+        if(diff==0.0f){
+            return 0;
+        } else if(diff >0.0f){
+             return 1;
+        } else {
+            return -1;
+        }
     }
 }

@@ -251,7 +251,7 @@ class Phase3TestDriver extends TestDriver
                     table1Name,
                     table2Name,
             k,
-            n_pages,numOfColumns1,numOfColumns2,joinAttrTable1,joinAttrTable2,mergeAttrTable1,mergeAttrTable2,table1,table2
+            n_pages, "",null
     );
 
         } catch (Exception e) {

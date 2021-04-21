@@ -4,9 +4,12 @@ import btree.BTreeFile;
 import btree.IntegerKey;
 import btree.KeyClass;
 import btree.StringKey;
+import diskmgr.PCounter;
 import global.*;
 import hash.HashFile;
 import heap.*;
+import index.IndexScan;
+import iterator.*;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -20,6 +23,8 @@ class Phase3InterfaceTestDriver extends TestDriver
     public static final int STR_LEN = 10;
     private static short REC_LEN1 = 15;
     public static final String metadatafileName = "/tmp/tablemetadata.ser";
+    public static final String commandFile = "/tmp/reportcommands.txt";
+    public static final boolean consoleMode = true;
 
     public Phase3InterfaceTestDriver() {
         super("phase3interfacetest");
@@ -67,27 +72,35 @@ class Phase3InterfaceTestDriver extends TestDriver
     }
 
     protected boolean test1() {
+
         boolean continueWhile = true;
-        System.out.println("Welcome to MiniBase DB \n" +
-                " \n Available Options :" +
-                "\n 1. open_database DBNAME" +
-                "\n 2. close_database" +
-                "\n 3. create_table [CLUSTERED HASH ATT_NO] FILENAME" +
-                "\n 4. create_index BTREE/HASH ATT_NO TABLENAME" +
-                "\n 5. insert_data TABLENAME FILENAME" +
-                "\n 6. delete_data TABLENAME FILENAME" +
-                "\n 7. output_table TABLENAME" +
-                "\n 8. output_index TABLENAME ATT_NO" +
-                "\n 9. skyline NLS/BNLS/SFS/BTS/BTS {ATTNO1...ATTNOh} TABLENAME NPAGES [MATER OUTTABLENAME]" +
-                "\n 10. GROUPBY SORT/HASH MAX/MIN/AGG/SKYGATTNO {AATTNO1...AATTNOh} TABLENAME NPAGES [MATER OUTTABLENAME] " +
-                "\n 11. JOIN NLJ/SMJ/INLJ/HJ OTABLENAME OATTNO ITABLENAME IATTNO OP NPAGES [MATER OUTTABLENAME] " +
-                "\n 12. TOPKJOIN HASH/NRA K OTABLENAME O_J_ATT_NO O_M_ATT_NO ITABLENAME I_JATT_NO I_MATT_NO NPAGES [MATER OUTTABLENAME] " +
-                "\n 13. exit_db \n \n");
+
+        if(consoleMode) {
+
+            System.out.println("Welcome to MiniBase DB \n" +
+                    " \n Available Options :" +
+                    "\n 1. open_database DBNAME" +
+                    "\n 2. close_database" +
+                    "\n 3. create_table [CLUSTERED HASH ATT_NO] FILENAME" +
+                    "\n 4. create_index BTREE/HASH ATT_NO TABLENAME" +
+                    "\n 5. insert_data TABLENAME FILENAME" +
+                    "\n 6. delete_data TABLENAME FILENAME" +
+                    "\n 7. output_table TABLENAME" +
+                    "\n 8. output_index TABLENAME ATT_NO" +
+                    "\n 9. skyline NLS/BNLS/SFS/BTS/BTSS {ATTNO1,ATTNO2,...,ATTNOh} TABLENAME NPAGES [MATER OUTTABLENAME]" +
+                    "\n 10. GROUPBY SORT/HASH MAX/MIN/AGG/SKYGATTNO {AATTNO1...AATTNOh} TABLENAME NPAGES [MATER OUTTABLENAME] " +
+                    "\n 11. JOIN NLJ/SMJ/INLJ/HJ OTABLENAME OATTNO ITABLENAME IATTNO OP NPAGES [MATER OUTTABLENAME] " +
+                    "\n 12. TOPKJOIN HASH/NRA K OTABLENAME O_J_ATT_NO O_M_ATT_NO ITABLENAME I_JATT_NO I_MATT_NO NPAGES [MATER OUTTABLENAME] " +
+                    "\n 13. exit_db \n \n");
+        }
 
         //open_database test1
         //create_table src/data/phase3demo/r_sii2000_1_75_200.csv
         //create_index BTREE 1 r_sii2000_1_75_200
         //create_index BTREE 2 r_sii2000_1_75_200
+        //create_table src/data/phase3demo/r_sii2000_10_10_10.csv
+        //create_index BTREE 1 r_sii2000_10_10_10
+        //create_index BTREE 2 r_sii2000_10_10_10
         //create_index BTREE 2 r_sii2000_1_75_200 -- fail
         //create_index HASH 1 r_sii2000_1_75_200
         //create_index HASH 2 r_sii2000_1_75_200
@@ -95,56 +108,740 @@ class Phase3InterfaceTestDriver extends TestDriver
         //insert_data r_sii2000_1_75_200 src/data/phase3demo/r_sii2000_10_10_10.csv
         //delete_data r_sii2000_1_75_200 src/data/phase3demo/r_sii2000_10_10_10.csv
         //output_table r_sii2000_1_75_200
+        //output_index r_sii2000_1_75_200 1
+        //skyline SFS 2,3 r_sii2000_1_75_200 5 MATER r_sii2000_1_75_200_sfs
+        //output_table r_sii2000_1_75_200_sfs
+        //skyline BTS 2,3 r_sii2000_1_75_200 5 MATER r_sii2000_1_75_200_bts
+        //output_table r_sii2000_1_75_200_bts
+        //skyline BTSS 2,3 r_sii2000_1_75_200 5 MATER r_sii2000_1_75_200_btss
+        //TOPKJOIN HASH 3 r_sii2000_1_75_200 1 2 r_sii2000_10_10_10 1 2 5 MATER topk_hash1
+        //output_table topk_hash
+
+        String command;
+        Scanner sc = null;
+        File obj = new File(commandFile);
+        try {
+            sc = new Scanner(obj);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
 
         while(continueWhile){
-            Scanner sc = new Scanner(System.in);
-            System.out.println(" Enter the query for execution : ");
 
-            String command = sc.nextLine();
-            String[] commandList = command.split(" ");
-            switch (commandList[0]) {
-                case "open_database" :
-                    open_database(commandList);
-                    break;
-                case  "close_database" :
-                    close_database();
-                    break;
-                case "create_table":
-                    create_table(commandList);
-                    break;
-                case "create_index" :
-                    create_index(commandList);
-                    break;
-                case "insert_data" :
-                    insert_data(commandList);
-                    break;
-                case "delete_data":
-                    delete_data(commandList);
-                    break;
-                case "output_table":
-                    output_table(commandList);
-                    break;
-                case "output_index":
-                    break;
-                case "skyline" :
-                    break;
-                case "GROUPBY" :
-                    break;
-                case "JOIN" :
-                    break;
-                case "TOPKJOIN":
-                    break;
-                case "exit_db":
-                    continueWhile = false;
-                    break;
-                default :
-                    System.out.println("Invalid syntax. Try again \n");
-                    break;
+            if(consoleMode) {
+                sc = new Scanner(System.in);
+                System.out.println(" Enter the query for execution : ");
+                command = sc.nextLine();
+
+                String[] commandList = command.split(" ");
+                switch (commandList[0]) {
+                    case "open_database":
+                        PCounter.initialize();
+                        open_database(commandList);
+                        PCounter.printCounter();
+                        System.out.println("DB opened successfully\n");
+                        break;
+                    case "close_database":
+                        PCounter.initialize();
+                        close_database();
+                        PCounter.printCounter();
+                        System.out.println("DB closed successfully\n");
+                        break;
+                    case "create_table":
+                        PCounter.initialize();
+                        create_table(commandList);
+                        PCounter.printCounter();
+                        System.out.println("Table created successfully\n");
+                        break;
+                    case "create_index":
+                        PCounter.initialize();
+                        create_index(commandList);
+                        PCounter.printCounter();
+                        System.out.println("Index created successfully\n");
+                        break;
+                    case "insert_data":
+                        PCounter.initialize();
+                        insert_data(commandList);
+                        PCounter.printCounter();
+                        System.out.println("Data inserted successfully\n");
+                        break;
+                    case "delete_data":
+                        PCounter.initialize();
+                        delete_data(commandList);
+                        PCounter.printCounter();
+                        System.out.println("Data deleted successfully\n");
+                        break;
+                    case "output_table":
+                        PCounter.initialize();
+                        output_table(commandList);
+                        PCounter.printCounter();
+                        System.out.println();
+                        break;
+                    case "output_index":
+                        PCounter.initialize();
+                        output_index(commandList);
+                        PCounter.printCounter();
+                        System.out.println();
+                        break;
+                    case "skyline":
+                        PCounter.initialize();
+                        output_skyline(commandList);
+                        PCounter.printCounter();
+                        System.out.println();
+                        break;
+                    case "GROUPBY":
+                        PCounter.initialize();
+                        output_groupby(commandList);
+                        PCounter.printCounter();
+                        System.out.println();
+                        break;
+                    case "JOIN":
+                        PCounter.initialize();
+                        output_join(commandList);
+                        PCounter.printCounter();
+                        System.out.println();
+                        break;
+                    case "TOPKJOIN":
+                        PCounter.initialize();
+                        output_topk(commandList);
+                        PCounter.printCounter();
+                        System.out.println();
+                        break;
+                    case "exit_db":
+                        continueWhile = false;
+                        System.out.println("Exiting DB\n");
+                        break;
+                    default:
+                        System.out.println("Invalid syntax. Try again \n");
+                        break;
+                }
+
+            } else {
+                while (sc.hasNextLine()) {
+                    command = sc.nextLine();
+                    if(command.startsWith("Test")){
+                        System.out.println("\n"+command+"\n");
+                        continue;
+                    }
+                    System.out.println("Command : "+command);
+                    String[] commandList = command.split(" ");
+                    switch (commandList[0]) {
+                        case "open_database":
+                            PCounter.initialize();
+                            open_database(commandList);
+                            PCounter.printCounter();
+                            System.out.println("DB opened successfully\n");
+                            break;
+                        case "close_database":
+                            PCounter.initialize();
+                            close_database();
+                            PCounter.printCounter();
+                            System.out.println("DB closed successfully\n");
+                            break;
+                        case "create_table":
+                            PCounter.initialize();
+                            create_table(commandList);
+                            PCounter.printCounter();
+                            System.out.println("Table created successfully\n");
+                            break;
+                        case "create_index":
+                            PCounter.initialize();
+                            create_index(commandList);
+                            PCounter.printCounter();
+                            System.out.println("Index created successfully\n");
+                            break;
+                        case "insert_data":
+                            PCounter.initialize();
+                            insert_data(commandList);
+                            PCounter.printCounter();
+                            System.out.println("Data inserted successfully\n");
+                            break;
+                        case "delete_data":
+                            PCounter.initialize();
+                            delete_data(commandList);
+                            PCounter.printCounter();
+                            System.out.println("Data deleted successfully\n");
+                            break;
+                        case "output_table":
+                            PCounter.initialize();
+                            output_table(commandList);
+                            PCounter.printCounter();
+                            System.out.println();
+                            break;
+                        case "output_index":
+                            PCounter.initialize();
+                            output_index(commandList);
+                            PCounter.printCounter();
+                            System.out.println();
+                            break;
+                        case "skyline":
+                            PCounter.initialize();
+                            output_skyline(commandList);
+                            PCounter.printCounter();
+                            System.out.println();
+                            break;
+                        case "GROUPBY":
+                            PCounter.initialize();
+                            output_groupby(commandList);
+                            PCounter.printCounter();
+                            System.out.println();
+                            break;
+                        case "JOIN":
+                            PCounter.initialize();
+                            output_join(commandList);
+                            PCounter.printCounter();
+                            System.out.println();
+                            break;
+                        case "TOPKJOIN":
+                            PCounter.initialize();
+                            output_topk(commandList);
+                            PCounter.printCounter();
+                            System.out.println();
+                            break;
+                        case "exit_db":
+                            continueWhile = false;
+                            System.out.println("Exiting DB\n");
+                            break;
+                        default:
+                            System.out.println("Invalid syntax. Try again \n");
+                            break;
+                    }
+                }
             }
-
         }
 
         return true;
+    }
+
+    private void output_join(String[] commandList) {
+    }
+
+    private void output_groupby(String[] commandList) {
+    }
+
+    private void output_topk(String[] commandList) {
+        String joinType = commandList[1];
+        int k = Integer.parseInt(commandList[2]);
+        String tableName1 = commandList[3];
+        int joinAttr1 = Integer.parseInt(commandList[4]);
+        int mergeAttr1 = Integer.parseInt(commandList[5]);
+        String tableName2 = commandList[6];
+        int joinAttr2 = Integer.parseInt(commandList[7]);
+        int mergeAttr2 = Integer.parseInt(commandList[8]);
+        int num_pages = Integer.parseInt(commandList[9]);
+        String outTableName = "";
+        boolean materialize = false;
+        if(commandList.length == 12){
+            materialize = true;
+            outTableName = commandList[11];
+        }
+        AttrType[] attrType1 = tableMetadataMap.get(tableName1).attrType;
+        short[] attrSize1 = tableMetadataMap.get(tableName1).attrSize;
+
+        AttrType[] attrType2 = tableMetadataMap.get(tableName2).attrType;
+        short[] attrSize2 = tableMetadataMap.get(tableName2).attrSize;
+
+        if(tableMetadataMap.get(outTableName)==null) {
+            //check if index files present for the mergeAttrs. Else throw error
+            if (checkIfIndexExists(tableName1,mergeAttr1,"UNCLUST","BTREE")) {
+                if (checkIfIndexExists(tableName1,mergeAttr1,"UNCLUST","BTREE")) {
+
+                    if (joinType.equals("HASH")) {
+                        try {
+
+                            TopK_HashJoin topk = new TopK_HashJoin(
+                                    attrType1, attrType1.length, attrSize1, new FldSpec(new RelSpec(RelSpec.outer), joinAttr1),
+                                    new FldSpec(new RelSpec(RelSpec.outer), mergeAttr1),
+                                    attrType2, attrType2.length, attrSize2, new FldSpec(new RelSpec(RelSpec.outer), joinAttr2),
+                                    new FldSpec(new RelSpec(RelSpec.outer), mergeAttr2),
+                                    tableName1,
+                                    tableName2,
+                                    k,
+                                    num_pages,outTableName,tableMetadataMap
+                            );
+                        }catch (Exception e) {
+                            e.printStackTrace();
+                            Runtime.getRuntime().exit(1);
+                        }
+
+                    } else if (joinType.equals("NRA")) {
+                        //Blake
+                    }
+                } else {
+                    System.out.println("No index present for attribute "+mergeAttr2+ " for table "+tableName2+". Please create an index on this attribute to use TopK on this attribute");
+                }
+            } else {
+                System.out.println("No index present for attribute "+mergeAttr1+ " for table "+tableName1+". Please create an index on this attribute to use TopK on this attribute");
+            }
+        } else {
+            System.out.println("OUTTABLENAME specified already exists. Please specify a new output table name");
+        }
+
+    }
+
+    private boolean checkIfIndexExists(String tableName, int attrNo, String clustType /*UNCLUST or CLUST*/, String indexType /* BTREE or HASH*/) {
+        ArrayList<String> indexList = tableMetadataMap.get(tableName).indexNameList;
+        String indexName = tableName+clustType+indexType+attrNo;
+        return indexList.contains(indexName);
+    }
+
+    private void output_skyline(String[] commandList) {
+        //skyline NLS/BNLS/SFS/BTS/BTSS {ATTNO1...ATTNOh} TABLENAME NPAGES [MATER OUTTABLENAME]
+        String skylineOperation = commandList[1];
+        String attrList = commandList[2];
+        String tableName = commandList[3];
+        String outTableName = "";
+        int n_pages = Integer.parseInt(commandList[4]);
+        boolean materialize = false;
+        if(commandList.length==7){
+            materialize = true;
+            outTableName = commandList[6];
+        }
+        switch (skylineOperation){
+            case "NLS":
+                output_NLS(tableName,attrList,outTableName,n_pages,materialize);
+                break;
+            case "BNLS":
+                output_BNLS(tableName,attrList,outTableName,n_pages,materialize);
+                break;
+            case "SFS":
+                output_SFS(tableName,attrList,outTableName,n_pages,materialize);
+                break;
+            case "BTS":
+                output_BTS(tableName,attrList,outTableName,n_pages,materialize);
+                break;
+            case "BTSS":
+                output_BTSS(tableName,attrList,outTableName,n_pages,materialize);
+                break;
+            default:
+                System.out.println("Invalid skyline operator specified. Please recheck.");
+        }
+
+    }
+
+    private void output_BTSS(String tableName, String attrList, String outTableName, int n_pages, boolean materialize) {
+        //check whether all pref list attributes have a corresponding index file
+        // Check for TABLE_NAME+CLUST/UNCLUST+BTREE/HASH+FIELDNO
+            if (tableMetadataMap.get(outTableName) == null) {
+                FileScan am = null;
+                String[] preflistArr = attrList.split(",");
+                int[] preflist = new int[preflistArr.length];
+
+                Heapfile hf = null;
+                try {
+                    hf = new Heapfile(tableName);
+                } catch (Exception e) {
+                    System.err.println("" + e);
+                }
+                AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+                short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+
+                for (int i = 0; i < preflistArr.length; i++) {
+                    preflist[i] = Integer.parseInt(preflistArr[i]) - 1;
+                }
+
+                FldSpec[] Pprojection = new FldSpec[attrType.length];
+                for (int i = 0; i < attrType.length; i++) {
+                    Pprojection[i] = new FldSpec(new RelSpec(RelSpec.outer), i + 1);
+                }
+                try {
+                    BTreeFile btf = new BTreeFile("BSortedIndex", AttrType.attrInteger, REC_LEN1, 1/*delete*/);
+
+                    Scan scan = null;
+
+                    try {
+                        scan = new Scan(hf);
+                    } catch (Exception e) {
+                        //status = FAIL;
+                        e.printStackTrace();
+                        Runtime.getRuntime().exit(1);
+                    }
+                    RID rid = new RID();
+                    KeyClass key;
+                    Tuple temp = null;
+
+                    Tuple t = new Tuple();
+                    try {
+                        t.setHdr((short) attrType.length, attrType, attrSize);
+                    } catch (Exception e) {
+                        System.err.println("*** error in Tuple.setHdr() ***");
+                        e.printStackTrace();
+                    }
+                    while ((temp = scan.getNext(rid)) != null) {
+                        t.tupleCopy(temp);
+                        try {
+                            float floatKey = (TupleUtils.computeTupleSumOfPrefAttrs(t, attrType, (short) attrType.length, attrSize, preflist, preflist.length));
+                            int intKey = (int) floatKey;
+                            key = new IntegerKey(intKey);
+                            btf.insert(key, rid);
+                        } catch (Exception e) {
+                            //status = FAIL;
+                            e.printStackTrace();
+                        }
+                    }
+
+                    am = null;
+                    try {
+                        am = new FileScan(tableName, attrType, attrSize, (short) attrType.length, (short) attrType.length, Pprojection, null);
+
+                    } catch (Exception e) {
+                        System.err.println("" + e);
+                    }
+
+                    try {
+                        BTreeSortedSky bts = new BTreeSortedSky(attrType, attrType.length, attrSize, am, tableName, preflist, preflist.length, btf, n_pages, outTableName, tableMetadataMap);
+                        bts.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } catch (Exception e) {
+                    System.err.println("" + e);
+                }
+            }
+    }
+
+    private void output_BTS(String tableName, String attrList, String outTableName, int n_pages, boolean materialize) {
+        //check whether all pref list attributes have a corresponding index file
+        // Check for TABLE_NAME+CLUST/UNCLUST+BTREE/HASH+FIELDNO
+            if (tableMetadataMap.get(outTableName) == null) {
+                FileScan am = null;
+                String[] preflistArr = attrList.split(",");
+                ArrayList<String> indexList = tableMetadataMap.get(tableName).indexNameList;
+                boolean indexExists = true;
+                int[] preflist = new int[preflistArr.length];
+                ArrayList<String> indexFileList = new ArrayList<>();
+                for (int i = 0; i < preflistArr.length; i++) {
+                    String indexFileName = tableName + "UNCLUSTBTREE" + preflistArr[i];
+                    if (!indexList.contains(indexFileName)) {
+                        System.out.println("There is no unclustered BTree index on attribute " + preflistArr[i] + ". Please create an index on the attribute to use it.");
+                        indexExists = false;
+                    } else {
+                        indexFileList.add(indexFileName);
+                    }
+                }
+                if (indexExists) {
+                    Heapfile hf = null;
+                    try {
+                        hf = new Heapfile(tableName);
+                    } catch (Exception e) {
+                        System.err.println("" + e);
+                    }
+                    AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+                    short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+
+                    for (int i = 0; i < preflistArr.length; i++) {
+                        preflist[i] = Integer.parseInt(preflistArr[i]) - 1;
+                    }
+
+                    FldSpec[] Pprojection = new FldSpec[attrType.length];
+                    for (int i = 0; i < attrType.length; i++) {
+                        Pprojection[i] = new FldSpec(new RelSpec(RelSpec.outer), i + 1);
+                    }
+
+                    am = null;
+                    try {
+                        am = new FileScan(tableName, attrType, attrSize, (short) attrType.length, (short) attrType.length, Pprojection, null);
+
+                    } catch (Exception e) {
+                        System.err.println("" + e);
+                    }
+
+                    BTreeFile[] BTreeFileList = new BTreeFile[indexFileList.size()];
+                    for (int i = 0; i < indexFileList.size(); i++) {
+                        try {
+                            BTreeFileList[i] = new BTreeFile(indexFileList.get(i));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    try {
+                        BTreeSky bts = new BTreeSky(attrType, attrType.length, attrSize, am, tableName,
+                                preflist, preflist.length, BTreeFileList, n_pages, hf, attrType.length, outTableName, tableMetadataMap);
+                        bts.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            } else {
+                System.out.println("OUTTABLENAME specified already exists. Please specify a new output table name");
+            }
+
+    }
+
+    private void output_SFS(String tableName, String attrList, String outTableName, int n_pages, boolean materialize) {
+            if (tableMetadataMap.get(outTableName) == null) {
+                FileScan am = null;
+                Heapfile outHeap = null;
+                String[] preflistArr = attrList.split(",");
+                int[] preflist = new int[preflistArr.length];
+                for (int i = 0; i < preflistArr.length; i++) {
+                    preflist[i] = Integer.parseInt(preflistArr[i]) - 1;
+                }
+
+                Tuple t = new Tuple();
+                AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+                short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+                try {
+                    t.setHdr((short) attrType.length, attrType, attrSize);
+                } catch (Exception e) {
+                    System.err.println("*** error in Tuple.setHdr() ***");
+                    e.printStackTrace();
+                }
+
+                FldSpec[] Pprojection = new FldSpec[attrType.length];
+                for (int i = 0; i < attrType.length; i++) {
+                    Pprojection[i] = new FldSpec(new RelSpec(RelSpec.outer), i + 1);
+                }
+
+                am = null;
+                try {
+                    am = new FileScan(tableName, attrType, attrSize, (short) attrType.length, (short) attrType.length, Pprojection, null);
+
+                } catch (Exception e) {
+                    System.err.println("" + e);
+                }
+
+                try {
+
+                    SortFirstSky s = new SortFirstSky(attrType, attrType.length, attrSize, am,
+                            tableName, preflist, preflist.length, n_pages);
+                    if (materialize) {
+                        outHeap = new Heapfile(outTableName);
+                    }
+
+                    while ((t = s.get_next()) != null) {
+                        t.print(attrType);
+                        if (materialize) {
+                            outHeap.insertRecord(t.returnTupleByteArray());
+                        }
+
+                    }
+                    s.close();
+                    if (materialize) {
+                        //update the table metadata map
+                        TableMetadata tm = new TableMetadata(outTableName, attrType, attrSize);
+                        tableMetadataMap.put(outTableName, tm);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Runtime.getRuntime().exit(1);
+                }
+            } else {
+                System.out.println("OUTTABLENAME specified already exists. Please specify a new output table name");
+            }
+    }
+
+    private void output_BNLS(String tableName, String attrList, String outTableName, int n_pages, boolean materialize) {
+            if (tableMetadataMap.get(outTableName) == null) {
+
+                FileScan am = null;
+                Heapfile outHeap = null;
+                String[] preflistArr = attrList.split(",");
+                int[] preflist = new int[preflistArr.length];
+                for (int i = 0; i < preflistArr.length; i++) {
+                    preflist[i] = Integer.parseInt(preflistArr[i]) - 1;
+                }
+
+                Tuple t = new Tuple();
+                AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+                short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+                try {
+                    t.setHdr((short) attrType.length, attrType, attrSize);
+                } catch (Exception e) {
+                    System.err.println("*** error in Tuple.setHdr() ***");
+                    e.printStackTrace();
+                }
+
+                FldSpec[] Pprojection = new FldSpec[attrType.length];
+                for (int i = 0; i < attrType.length; i++) {
+                    Pprojection[i] = new FldSpec(new RelSpec(RelSpec.outer), i + 1);
+                }
+
+                am = null;
+                try {
+                    am = new FileScan(tableName, attrType, attrSize, (short) attrType.length, (short) attrType.length, Pprojection, null);
+
+                } catch (Exception e) {
+                    System.err.println("" + e);
+                }
+
+                try {
+
+                    BlockNestedLoopsSky s = new BlockNestedLoopsSky(attrType, attrType.length, attrSize, am,
+                            tableName, preflist, preflist.length, n_pages);
+                    if (materialize) {
+                        outHeap = new Heapfile(outTableName);
+                    }
+
+                    while ((t = s.get_next()) != null) {
+                        t.print(attrType);
+                        if (materialize) {
+                            outHeap.insertRecord(t.returnTupleByteArray());
+                        }
+
+                    }
+                    s.close();
+                    if (materialize) {
+                        //update the table metadata map
+                        TableMetadata tm = new TableMetadata(outTableName, attrType, attrSize);
+                        tableMetadataMap.put(outTableName, tm);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Runtime.getRuntime().exit(1);
+                }
+            } else {
+                System.out.println("OUTTABLENAME specified already exists. Please specify a new output table name");
+            }
+    }
+
+    private void output_NLS(String tableName, String attrList, String outTableName, int n_pages, boolean materialize) {
+            if (tableMetadataMap.get(outTableName) == null) {
+                FileScan am = null;
+                Heapfile outHeap = null;
+                String[] preflistArr = attrList.split(",");
+                int[] preflist = new int[preflistArr.length];
+                for (int i = 0; i < preflistArr.length; i++) {
+                    preflist[i] = Integer.parseInt(preflistArr[i]) - 1;
+                }
+
+                Tuple t = new Tuple();
+                AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+                short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+                try {
+                    t.setHdr((short) attrType.length, attrType, attrSize);
+                } catch (Exception e) {
+                    System.err.println("*** error in Tuple.setHdr() ***");
+                    e.printStackTrace();
+                }
+
+                FldSpec[] Pprojection = new FldSpec[attrType.length];
+                for (int i = 0; i < attrType.length; i++) {
+                    Pprojection[i] = new FldSpec(new RelSpec(RelSpec.outer), i + 1);
+                }
+
+                am = null;
+                try {
+                    am = new FileScan(tableName, attrType, attrSize, (short) attrType.length, (short) attrType.length, Pprojection, null);
+
+                } catch (Exception e) {
+                    System.err.println("" + e);
+                }
+
+                try {
+
+                    NestedLoopsSky s = new NestedLoopsSky(attrType, attrType.length, attrSize, am,
+                            tableName, preflist, preflist.length, n_pages);
+                    if (materialize) {
+                        outHeap = new Heapfile(outTableName);
+                    }
+
+                    while ((t = s.get_next()) != null) {
+                        t.print(attrType);
+                        if (materialize) {
+                            outHeap.insertRecord(t.returnTupleByteArray());
+                        }
+
+                    }
+                    s.close();
+                    if (materialize) {
+                        //update the table metadata map
+                        TableMetadata tm = new TableMetadata(outTableName, attrType, attrSize);
+                        tableMetadataMap.put(outTableName, tm);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Runtime.getRuntime().exit(1);
+                }
+            } else {
+                System.out.println("OUTTABLENAME specified already exists. Please specify a new output table name");
+            }
+
+    }
+
+    private void output_index(String[] commandList) {
+        String tableName = commandList[1];
+        int attrNo = Integer.parseInt(commandList[2]);
+        ArrayList<String> attrIndexList = new ArrayList<>();
+
+        ArrayList<String> indexList = tableMetadataMap.get(tableName).indexNameList;
+        for(int i=0;i<indexList.size();i++){
+            // Check for TABLE_NAME+CLUST/UNCLUST+BTREE/HASH+FIELDNO
+            String indexName = indexList.get(i);
+            int position = indexName.lastIndexOf(String.valueOf(attrNo));
+            if(position!=-1){
+                attrIndexList.add(indexName);
+            }
+        }
+        if(attrIndexList.size()!=0){
+            System.out.println(attrIndexList.size()+ " indexes present for the attribute number "+attrNo);
+            System.out.println("Index List : ");
+            for(String indexName : attrIndexList){
+                System.out.println(indexName);
+            }
+            String indexFileName = attrIndexList.get(0);
+            boolean unclustered = indexFileName.contains("UNCLUST");
+            boolean btree = indexFileName.contains("BTREE");
+            if(unclustered && btree){
+                // unclustered Btree
+                printKeysForUnclustBTree(tableName,indexFileName,attrNo,IndexType.B_Index);
+
+            } else if(unclustered && !btree) {
+                // unclustered Hash
+                printKeysForUnclustBTree(tableName,indexFileName,attrNo,IndexType.Hash);
+            } else {
+                // clustered Hash
+                printKeysForUnclustBTree(tableName,indexFileName,attrNo,IndexType.Hash);
+            }
+
+        } else {
+            System.out.println("N/A");
+        }
+
+
+    }
+
+    private void printKeysForUnclustBTree(String tableName, String indexFileName, int attrNo, int indexType) {
+        AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+        short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+        int numOfColumns = attrType.length;
+
+        FldSpec[] projlist = new FldSpec[numOfColumns];
+        RelSpec rel = new RelSpec(RelSpec.outer);
+        for(int i =0; i < numOfColumns;i++) {
+            projlist[i] = new FldSpec(rel, i+1);
+        }
+        CondExpr[] expr = new CondExpr[2];
+        expr[0] = null;
+        expr[1] = null;
+
+        try {
+            IndexScan iscan = new IndexScan(new IndexType(indexType), tableName, indexFileName,
+                    attrType, attrSize, numOfColumns, numOfColumns, projlist, expr, numOfColumns, false);
+            Tuple temp = null;
+            Tuple scanTuple = new Tuple();
+            try {
+                scanTuple.setHdr((short) numOfColumns, attrType, attrSize);
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("Keys from index file : ");
+            while((temp= iscan.get_next())!=null){
+                scanTuple.tupleCopy(temp);
+                if(attrType[attrNo-1].attrType==AttrType.attrString){
+                    System.out.println(scanTuple.getStrFld(attrNo));
+                } else {
+                    System.out.println(scanTuple.getIntFld(attrNo));
+                }
+            }
+
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+
     }
 
     private void delete_data(String[] commandList) {
@@ -825,47 +1522,3 @@ public class Phase3InterfaceTest {
 
 }
 
-class TableMetadata implements Serializable {
-    public String tableName;
-    public AttrType[] attrType;
-    public short[] attrSize;
-    ArrayList<String> indexNameList = new ArrayList<>();
-
-    public short[] getAttrSize() {
-        return attrSize;
-    }
-
-    public void setAttrSize(short[] attrSize) {
-        this.attrSize = attrSize;
-    }
-
-    public TableMetadata(String tableName, AttrType[] attrType, short[] attrSize) {
-        this.tableName = tableName;
-        this.attrType = attrType;
-        this.attrSize = attrSize;
-    }
-
-    public ArrayList<String> getIndexNameList() {
-        return indexNameList;
-    }
-
-    public void setIndexNameList(ArrayList<String> indexNameList) {
-        this.indexNameList = indexNameList;
-    }
-
-    public String getTableName() {
-        return tableName;
-    }
-
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
-
-    public AttrType[] getAttrType() {
-        return attrType;
-    }
-
-    public void setAttrType(AttrType[] attrType) {
-        this.attrType = attrType;
-    }
-}
