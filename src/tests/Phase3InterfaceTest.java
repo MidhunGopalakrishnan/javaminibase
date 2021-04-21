@@ -24,7 +24,7 @@ class Phase3InterfaceTestDriver extends TestDriver
     private static short REC_LEN1 = 15;
     public static final String metadatafileName = "/tmp/tablemetadata.ser";
     public static final String commandFile = "/tmp/reportcommands.txt";
-    public static final boolean consoleMode = true;
+    public static final boolean consoleMode = false;
     HashMap<String,Integer> operatorList = new HashMap<>();
 
     public Phase3InterfaceTestDriver() {

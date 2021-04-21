@@ -273,8 +273,13 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                                 break;
                             }
                             Bounds[count][0] = pLBCalc[i][0];
-                            Bounds[count][1] = pLBCalc[i][1];
-                            Bounds[count][2] = pLBCalc[i+1][1];
+                            if(Integer.parseInt(pLBCalc[i][1])%2 == 0) {
+                                Bounds[count][1] = pLBCalc[i][1];
+                                Bounds[count][2] = pLBCalc[i + 1][1];
+                            }else if(Integer.parseInt(pLBCalc[i][1])%2 == 1){
+                                Bounds[count][2] = pLBCalc[i][1];
+                                Bounds[count][1] = pLBCalc[i + 1][1];
+                            }
                             Bounds[count][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[i+1][3]));
                             Bounds[count][4] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[i+1][3]));
                             count++;
@@ -526,6 +531,12 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                         for(int j = 0; j < Bounds.length; j++){
                             if(String.valueOf(findk).compareTo(Bounds[j][3]) == 0 ){
                                 System.out.printf("%-20s%-8s",Bounds[j][0], Bounds[j][3]);
+                                if(Bounds[j][1].compareTo("$") == 0){
+                                    Bounds[j][1] = "-1";
+                                }
+                                if(Bounds[j][2].compareTo("$") == 0){
+                                    Bounds[j][2] = "-1";
+                                }
                                 String tupleVal1 = Bounds[j][1];
                                 String tupleVal2 = Bounds[j][2];
                                 String foundVal1 = "";
@@ -539,10 +550,10 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                                     }
                                 }
                                 if(foundVal1.compareTo("") == 0){
-                                    foundVal1 = "-";
+                                    foundVal1 = "0";
                                 }
                                 if(foundVal2.compareTo("") == 0){
-                                    foundVal2 = "-";
+                                    foundVal2 = "0";
                                 }
 
                                 //insert to output Heap File
@@ -590,7 +601,8 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                     if (scanTuple == null && countK < k) {
                         System.out.println("No Top K elements can be found from these two tables");
                     } else if (scanTuple != null) {
-//                        scanTuple.print(in1);
+//Comment line below to surpress output
+                        //scanTuple.print(in1);
                         //                      if (!tupleTracker.containsKey(scanTuple.getStrFld(1))) { //TODO : change hardcoded value of 1. First value is not always the join attribute, also it wont be string always
                         int position = mergeAttrTable1;
                         if(i==1){
