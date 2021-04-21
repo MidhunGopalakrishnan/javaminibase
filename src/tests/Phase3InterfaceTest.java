@@ -25,6 +25,7 @@ class Phase3InterfaceTestDriver extends TestDriver
     public static final String metadatafileName = "/tmp/tablemetadata.ser";
     public static final String commandFile = "/tmp/reportcommands.txt";
     public static final boolean consoleMode = true;
+    HashMap<String,Integer> operatorList = new HashMap<>();
 
     public Phase3InterfaceTestDriver() {
         super("phase3interfacetest");
@@ -117,6 +118,8 @@ class Phase3InterfaceTestDriver extends TestDriver
         //TOPKJOIN HASH 3 r_sii2000_1_75_200 1 2 r_sii2000_10_10_10 1 2 5 MATER topk_hash1
         //TOPKJOIN NRA 3 r_sii2000_1_75_200 1 2 r_sii2000_10_10_10 1 2 5 MATER topk_hash1
         //output_table topk_hash1
+        //JOIN NLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
+        //JOIN SMJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
 
         String command;
         Scanner sc = null;
@@ -315,9 +318,425 @@ class Phase3InterfaceTestDriver extends TestDriver
     }
 
     private void output_join(String[] commandList) {
+        operatorList.put("=",AttrOperator.aopEQ);
+        operatorList.put("<=",AttrOperator.aopLE);
+        operatorList.put("<",AttrOperator.aopLT);
+        operatorList.put(">",AttrOperator.aopGT);
+        operatorList.put(">=",AttrOperator.aopGE);
+        String joinType = commandList[1];
+        String outerTableName = commandList[2];
+        int outerAttrNo = Integer.parseInt(commandList[3]);
+        String innerTableName = commandList[4];
+        int innerAttrNo = Integer.parseInt(commandList[5]);
+        String operator = commandList[6];
+        int n_pages = Integer.parseInt(commandList[7]);
+        boolean materialize = false;
+        String outputTableName = "";
+        if(commandList.length == 10){
+            materialize = true;
+            outputTableName = commandList[9];
+        }
+        if(tableMetadataMap.get(outerTableName)!=null && tableMetadataMap.get(innerTableName)!=null) {
+            switch (joinType) {
+                case "NLJ":
+                    output_nlj(outerTableName, outerAttrNo, innerTableName, innerAttrNo, operator, n_pages, materialize, outputTableName);
+                    break;
+                case "SMJ":
+                    output_smj(outerTableName, outerAttrNo, innerTableName, innerAttrNo, operator, n_pages, materialize, outputTableName);
+                    break;
+                case "INLJ":
+                    output_inlj(outerTableName, outerAttrNo, innerTableName, innerAttrNo, operator, n_pages, materialize, outputTableName);
+                    break;
+                case "HJ":
+                    output_hj(outerTableName, outerAttrNo, innerTableName, innerAttrNo, operator, n_pages, materialize, outputTableName);
+                    break;
+                default:
+                    System.out.println("Not a valid Join Type!");
+                    break;
+            }
+        } else {
+            System.out.println("One or more of the table Names specified does not exist");
+        }
+    }
+
+    private void output_smj(String outerTableName, int outerAttrNo, String innerTableName, int innerAttrNo, String operator, int n_pages, boolean materialize, String outputTableName) {
+        CondExpr[] expr = new CondExpr[2];
+        expr[0] = new CondExpr();
+        expr[1] = new CondExpr();
+        expr[0].next  = null;
+        expr[0].op    = new AttrOperator(operatorList.get(operator));
+        expr[0].type1 = new AttrType(AttrType.attrSymbol);
+        expr[0].type2 = new AttrType(AttrType.attrSymbol);
+        expr[0].operand1.symbol = new FldSpec (new RelSpec(RelSpec.outer),outerAttrNo);
+        expr[0].operand2.symbol = new FldSpec (new RelSpec(RelSpec.innerRel),innerAttrNo);
+        expr[1] = null;
+
+
+        CondExpr[] scanExpr = new CondExpr[2];
+        scanExpr[0] = null;
+        scanExpr[1] = null;
+
+        AttrType[] attrType1 = tableMetadataMap.get(outerTableName).attrType;
+        short[] attrSize1 = tableMetadataMap.get(outerTableName).attrSize;
+
+        AttrType[] attrType2 = tableMetadataMap.get(innerTableName).attrType;
+        short[] attrSize2 = tableMetadataMap.get(innerTableName).attrSize;
+
+        FldSpec[] projlist1 = new FldSpec[attrType1.length];
+        RelSpec rel1 = new RelSpec(RelSpec.outer);
+        for(int i =0; i < attrType1.length;i++) {
+            projlist1[i] = new FldSpec(rel1, i+1);
+        }
+
+        FldSpec[] projlist2 = new FldSpec[attrType2.length ];
+        RelSpec rel2 = new RelSpec(RelSpec.outer);
+        for(int i =0; i < attrType2.length ;i++) {
+            projlist2[i] = new FldSpec(rel2, i+1);
+        }
+
+        FldSpec[] projlist3 = new FldSpec[attrType1.length + attrType2.length];
+        rel2 = new RelSpec(RelSpec.innerRel);
+        for(int i =0; i < attrType1.length ;i++) {
+            projlist3[i] = new FldSpec(rel1, i+1);
+        }
+        for(int i =0; i < attrType2.length;i++) {
+            projlist3[i+attrType1.length ] = new FldSpec(rel2, i+1);
+        }
+
+        FileScan am1 = null;
+        try {
+            am1  = new FileScan(outerTableName, attrType1, attrSize1,
+                    (short)attrType1.length, (short)attrType1.length,
+                    projlist1, null);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        FileScan am2 = null;
+        try {
+            am2  = new FileScan(innerTableName, attrType2, attrSize2,
+                    (short)attrType2.length, (short)attrType2.length,
+                    projlist2, null);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        try {
+                TupleOrder ascending = new TupleOrder(TupleOrder.Ascending);
+                SortMerge sm = new SortMerge(attrType1,
+                        attrType1.length,
+                        attrSize1,
+                        attrType2,
+                        attrType2.length,
+                        attrSize2,
+
+                        outerAttrNo,
+                        4,
+                        innerAttrNo,
+                        4,
+
+                        n_pages,
+                        am1,
+                        am2,
+
+                        false,
+                        false,
+                        ascending,
+
+                        expr,
+                        projlist3,
+                        attrType1.length + attrType2.length
+                );
+
+                Tuple t = new Tuple();
+                int jTupleLength = attrType1.length + attrType2.length;
+                AttrType[] jList = new AttrType[jTupleLength];
+                for (int i = 0; i < attrType1.length; i++) {
+                    jList[i] = attrType1[i];
+                }
+                for (int i = attrType1.length; i < jTupleLength; i++) {
+                    jList[i] = attrType2[i - attrType1.length];
+                }
+                short[] jSize = new short[attrSize1.length+attrSize2.length];
+                for (int i = 0; i < attrSize1.length; i++) {
+                jSize[i] = attrSize1[i];
+                }
+                for (int i = attrSize1.length; i < jSize.length; i++) {
+                jSize[i] = attrSize2[i - attrSize1.length];
+                }
+
+            try {
+                t.setHdr((short) jList.length, jList, jSize);
+            } catch (Exception e) {
+                System.err.println("*** error in Tuple.setHdr() ***");
+                e.printStackTrace();
+            }
+
+                while ((t = sm.get_next()) != null) {
+                    //print the joined tuples
+                    //if table should be materialized
+                    //add join table to tablemetadata
+                    //and create new table
+                    t.print(jList);
+                }
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+
+    }
+
+    private void output_nlj(String outerTableName, int outerAttrNo, String innerTableName, int innerAttrNo, String operator, int n_pages, boolean materialize, String outputTableName) {
+        CondExpr[] expr = new CondExpr[2];
+        expr[0] = new CondExpr();
+        expr[1] = new CondExpr();
+        expr[0].next  = null;
+        expr[0].op    = new AttrOperator(operatorList.get(operator));
+        expr[0].type1 = new AttrType(AttrType.attrSymbol);
+        expr[0].type2 = new AttrType(AttrType.attrSymbol);
+        expr[0].operand1.symbol = new FldSpec (new RelSpec(RelSpec.outer),outerAttrNo);
+        expr[0].operand2.symbol = new FldSpec (new RelSpec(RelSpec.innerRel),innerAttrNo);
+        expr[1] = null;
+
+
+        CondExpr[] scanExpr = new CondExpr[2];
+        scanExpr[0] = null;
+        scanExpr[1] = null;
+
+        AttrType[] attrType1 = tableMetadataMap.get(outerTableName).attrType;
+        short[] attrSize1 = tableMetadataMap.get(outerTableName).attrSize;
+
+        AttrType[] attrType2 = tableMetadataMap.get(innerTableName).attrType;
+        short[] attrSize2 = tableMetadataMap.get(innerTableName).attrSize;
+
+        FldSpec[] projlist1 = new FldSpec[attrType1.length];
+        RelSpec rel1 = new RelSpec(RelSpec.outer);
+        for(int i =0; i < attrType1.length;i++) {
+            projlist1[i] = new FldSpec(rel1, i+1);
+        }
+
+        FldSpec[] projlist2 = new FldSpec[attrType1.length + attrType2.length];
+        RelSpec rel2 = new RelSpec(RelSpec.innerRel);
+        for(int i =0; i < attrType1.length ;i++) {
+            projlist2[i] = new FldSpec(rel1, i+1);
+        }
+        for(int i =0; i < attrType2.length;i++) {
+            projlist2[i+attrType1.length ] = new FldSpec(rel2, i+1);
+        }
+
+        iterator.Iterator am1 = null;
+        String indexFileName = outerTableName+"UNCLUSTBTREE"+outerAttrNo;
+        if(tableMetadataMap.get(outerTableName).indexNameList.contains(indexFileName)) {
+            try {
+                am1 = new IndexScan(new IndexType(IndexType.B_Index), outerTableName, indexFileName
+                        , attrType1, attrSize1, attrType1.length, attrType1.length,
+                        projlist1, scanExpr, attrType1.length, false);
+            } catch (Exception e) {
+                System.err.println("*** Error creating scan for Index scan");
+                System.err.println("" + e);
+                Runtime.getRuntime().exit(1);
+            }
+
+            try {
+                NestedLoopsJoins nlj = new NestedLoopsJoins(attrType1,
+                        attrType1.length,
+                        attrSize1,
+                        attrType2,
+                        attrType2.length,
+                        attrSize2,
+                        n_pages,
+                        am1,
+                        outerTableName,
+                        expr,
+                        scanExpr,
+                        projlist2,
+                        attrType1.length + attrType2.length
+                );
+                Tuple t = new Tuple();
+                int jTupleLength = attrType1.length + attrType2.length;
+                AttrType[] jList = new AttrType[jTupleLength];
+                for (int i = 0; i < attrType1.length; i++) {
+                    jList[i] = attrType1[i];
+                }
+                for (int i = attrType1.length; i < jTupleLength; i++) {
+                    jList[i] = attrType2[i - attrType1.length];
+                }
+                while ((t = nlj.get_next()) != null) {
+                    //print the joined tuples
+                    //if table should be materialized
+                    //add join table to tablemetadata
+                    //and create new table
+                    t.print(jList);
+                }
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        else{
+            System.out.println("No unclustered BTree index present on attribute " + outerAttrNo + " for table " + outerTableName);
+        }
+    }
+
+    private void output_hj(String outerTableName, int outerAttrNo, String innerTableName, int innerAttrNo, String operator, int n_pages, boolean materialize, String outputTableName) {
+        CondExpr[] expr = new CondExpr[2];
+        expr[0] = new CondExpr();
+        expr[1] = new CondExpr();
+        expr[0].next  = null;
+        expr[0].op    = new AttrOperator(operatorList.get(operator));
+        expr[0].type1 = new AttrType(AttrType.attrSymbol);
+        expr[0].type2 = new AttrType(AttrType.attrSymbol);
+        expr[0].operand1.symbol = new FldSpec (new RelSpec(RelSpec.outer),outerAttrNo);
+        expr[0].operand2.symbol = new FldSpec (new RelSpec(RelSpec.innerRel),innerAttrNo);
+        expr[1] = null;
+
+
+        CondExpr[] scanExpr = new CondExpr[2];
+        scanExpr[0] = null;
+        scanExpr[1] = null;
+
+        AttrType[] attrType1 = tableMetadataMap.get(outerTableName).attrType;
+        short[] attrSize1 = tableMetadataMap.get(outerTableName).attrSize;
+
+        AttrType[] attrType2 = tableMetadataMap.get(innerTableName).attrType;
+        short[] attrSize2 = tableMetadataMap.get(innerTableName).attrSize;
+
+        FldSpec[] projlist1 = new FldSpec[attrType1.length];
+        RelSpec rel1 = new RelSpec(RelSpec.outer);
+        for(int i =0; i < attrType1.length;i++) {
+            projlist1[i] = new FldSpec(rel1, i+1);
+        }
+
+        FldSpec[] projlist2 = new FldSpec[attrType1.length + attrType2.length];
+        RelSpec rel2 = new RelSpec(RelSpec.innerRel);
+        for(int i =0; i < attrType1.length ;i++) {
+            projlist2[i] = new FldSpec(rel1, i+1);
+        }
+        for(int i =0; i < attrType2.length;i++) {
+            projlist2[i+attrType1.length ] = new FldSpec(rel2, i+1);
+        }
+
+        iterator.Iterator am1 = null;
+        String indexFileName = outerTableName+"UNCLUSTBTREE"+outerAttrNo;
+        if(tableMetadataMap.get(outerTableName).indexNameList.contains(indexFileName)) {
+            try {
+                am1 = new IndexScan(new IndexType(IndexType.B_Index), outerTableName, indexFileName
+                        , attrType1, attrSize1, attrType1.length, attrType1.length,
+                        projlist1, scanExpr, attrType1.length, false);
+            } catch (Exception e) {
+                System.err.println("*** Error creating scan for Index scan");
+                System.err.println("" + e);
+                Runtime.getRuntime().exit(1);
+            }
+
+            try {
+                HashJoins inlj = new HashJoins(attrType1,
+                        attrType1.length,
+                        attrSize1,
+                        attrType2,
+                        attrType2.length,
+                        attrSize2,
+                        n_pages,
+                        am1,
+                        outerTableName,
+                        expr,
+                        scanExpr,
+                        projlist2,
+                        attrType1.length + attrType2.length,
+                        materialize,
+                        innerAttrNo,
+                        tableMetadataMap
+                );
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        else{
+            System.out.println("No unclustered BTree index present on attribute " + outerAttrNo + " for table " + outerTableName);
+        }
     }
 
     private void output_groupby(String[] commandList) {
+    }
+
+    private void output_inlj(String outerTableName, int outerAttrNo, String innerTableName, int innerAttrNo, String operator, int n_pages, boolean materialize, String outputTableName) {
+
+        CondExpr[] expr = new CondExpr[2];
+        expr[0] = new CondExpr();
+        expr[1] = new CondExpr();
+        expr[0].next  = null;
+        expr[0].op    = new AttrOperator(operatorList.get(operator));
+        expr[0].type1 = new AttrType(AttrType.attrSymbol);
+        expr[0].type2 = new AttrType(AttrType.attrSymbol);
+        expr[0].operand1.symbol = new FldSpec (new RelSpec(RelSpec.outer),outerAttrNo);
+        expr[0].operand2.symbol = new FldSpec (new RelSpec(RelSpec.innerRel),innerAttrNo);
+        expr[1] = null;
+
+
+        CondExpr[] scanExpr = new CondExpr[2];
+        scanExpr[0] = null;
+        scanExpr[1] = null;
+
+        AttrType[] attrType1 = tableMetadataMap.get(outerTableName).attrType;
+        short[] attrSize1 = tableMetadataMap.get(outerTableName).attrSize;
+
+        AttrType[] attrType2 = tableMetadataMap.get(innerTableName).attrType;
+        short[] attrSize2 = tableMetadataMap.get(innerTableName).attrSize;
+
+        FldSpec[] projlist1 = new FldSpec[attrType1.length];
+        RelSpec rel1 = new RelSpec(RelSpec.outer);
+        for(int i =0; i < attrType1.length;i++) {
+            projlist1[i] = new FldSpec(rel1, i+1);
+        }
+
+        FldSpec[] projlist2 = new FldSpec[attrType1.length + attrType2.length];
+        RelSpec rel2 = new RelSpec(RelSpec.innerRel);
+        for(int i =0; i < attrType1.length ;i++) {
+            projlist2[i] = new FldSpec(rel1, i+1);
+        }
+        for(int i =0; i < attrType2.length;i++) {
+            projlist2[i+attrType1.length ] = new FldSpec(rel2, i+1);
+        }
+
+        iterator.Iterator am1 = null;
+        String indexFileName = outerTableName+"UNCLUSTBTREE"+outerAttrNo;
+        if(tableMetadataMap.get(outerTableName).indexNameList.contains(indexFileName)) {
+            try {
+                am1 = new IndexScan(new IndexType(IndexType.B_Index), outerTableName, indexFileName
+                        , attrType1, attrSize1, attrType1.length, attrType1.length,
+                        projlist1, scanExpr, attrType1.length, false);
+            } catch (Exception e) {
+                System.err.println("*** Error creating scan for Index scan");
+                System.err.println("" + e);
+                Runtime.getRuntime().exit(1);
+            }
+
+            try {
+                IndexNestedLoopJoins inlj = new IndexNestedLoopJoins(attrType1,
+                        attrType1.length,
+                        attrSize1,
+                        attrType2,
+                        attrType2.length,
+                        attrSize2,
+                        n_pages,
+                        am1,
+                        outerTableName,
+                        expr,
+                        scanExpr,
+                        projlist2,
+                        attrType1.length + attrType2.length,
+                        materialize,
+                        innerAttrNo,
+                        tableMetadataMap
+                );
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        else{
+                System.out.println("No unclustered BTree index present on attribute " + outerAttrNo + " for table " + outerTableName);
+            }
+
     }
 
     private void output_topk(String[] commandList) {
