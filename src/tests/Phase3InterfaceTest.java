@@ -89,7 +89,7 @@ class Phase3InterfaceTestDriver extends TestDriver
                     "\n 7. output_table TABLENAME" +
                     "\n 8. output_index TABLENAME ATT_NO" +
                     "\n 9. skyline NLS/BNLS/SFS/BTS/BTSS {ATTNO1,ATTNO2,...,ATTNOh} TABLENAME NPAGES [MATER OUTTABLENAME]" +
-                    "\n 10. GROUPBY SORT/HASH MAX/MIN/AGG/SKYGATTNO {AATTNO1...AATTNOh} TABLENAME NPAGES [MATER OUTTABLENAME] " +
+                    "\n 10. GROUPBY SORT/HASH MAX/MIN/AGG/SKYGATTNO {AATTNO1,AATTNO2,...,AATTNOh} TABLENAME NPAGES [MATER OUTTABLENAME] " +
                     "\n 11. JOIN NLJ/SMJ/INLJ/HJ OTABLENAME OATTNO ITABLENAME IATTNO OP NPAGES [MATER OUTTABLENAME] " +
                     "\n 12. TOPKJOIN HASH/NRA K OTABLENAME O_J_ATT_NO O_M_ATT_NO ITABLENAME I_JATT_NO I_MATT_NO NPAGES [MATER OUTTABLENAME] " +
                     "\n 13. exit_db \n \n");
@@ -120,6 +120,7 @@ class Phase3InterfaceTestDriver extends TestDriver
         //output_table topk_hash1
         //JOIN NLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
         //JOIN SMJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
+        //GROUPBY HASH MAX 1 2,3 r_sii2000_1_75_200 5
 
         String command;
         Scanner sc = null;
@@ -657,6 +658,97 @@ class Phase3InterfaceTestDriver extends TestDriver
     }
 
     private void output_groupby(String[] commandList) {
+       //GROUPBY SORT/HASH MAX/MIN/AVG/SKY G_ATTNO {AATTNO1...AATTNOh} TABLENAME NPAGES [MATER OUTTABLENAME]
+        String groupType = commandList[1];
+        String aggrType = commandList[2];
+        int grpAttrNo = Integer.parseInt(commandList[3]);
+        String attrs = commandList[4];
+        String[] attrArray = attrs.split(",");
+        int[] aggAttrArray = new int[attrArray.length];
+        for(int i=0; i < aggAttrArray.length;i++){
+            aggAttrArray[i] = Integer.parseInt(attrArray[i]);
+        }
+        String tableName = commandList[5];
+        int n_pages = Integer.parseInt(commandList[6]);
+        boolean materialize = false;
+        String outputTableName = "";
+        if(commandList.length == 9){
+            materialize = true;
+            outputTableName = commandList[8];
+        }
+        HashMap<String,Integer> aggTypeMap = new HashMap<>();
+        aggTypeMap.put("MAX",AggType.aggMax);
+        aggTypeMap.put("MIN",AggType.aggMin);
+        aggTypeMap.put("AVG",AggType.aggAvg);
+        aggTypeMap.put("SKY",AggType.aggSky);
+
+        switch (groupType) {
+            case "SORT":
+                output_gb_sort(aggTypeMap.get(aggrType),grpAttrNo,aggAttrArray,tableName,n_pages,materialize,outputTableName);
+                break;
+            case "HASH":
+                output_gb_hash(aggTypeMap.get(aggrType),grpAttrNo,aggAttrArray,tableName,n_pages,materialize,outputTableName);
+                break;
+            default :
+                System.out.println("GroupBy Type enetered is invalid");
+        }
+
+    }
+
+    private void output_gb_hash(Integer aggrType, int grpAttrNo, int[] aggAttrArray, String tableName, int n_pages, boolean materialize, String outputTableName) {
+        if(tableMetadataMap.get(tableName)!=null) {
+            AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+            short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+
+            FldSpec group_by_attr = new FldSpec (new RelSpec(RelSpec.outer),grpAttrNo);
+            FldSpec[] agg_list = new FldSpec[aggAttrArray.length];
+            for(int i=0; i< aggAttrArray.length;i++){
+                agg_list[i] = new FldSpec (new RelSpec(RelSpec.outer),aggAttrArray[i]);
+            }
+
+            FldSpec[] projlist1 = new FldSpec[attrType.length];
+            RelSpec rel1 = new RelSpec(RelSpec.outer);
+            for(int i =0; i < attrType.length;i++) {
+                projlist1[i] = new FldSpec(rel1, i+1);
+            }
+
+            GroupBy gb = new GroupBy();
+            try{
+                gb.GroupBywithHash(attrType,attrType.length,attrSize,new Heapfile(tableName),group_by_attr,agg_list,new AggType(aggrType),projlist1,attrType.length,n_pages);
+            } catch(Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+    }
+
+    private void output_gb_sort(Integer aggrType, int grpAttrNo, int[] aggAttrArray, String tableName, int n_pages, boolean materialize, String outputTableName) {
+
+        if(tableMetadataMap.get(tableName)!=null) {
+        AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+        short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+
+        FldSpec group_by_attr = new FldSpec (new RelSpec(RelSpec.outer),grpAttrNo);
+        FldSpec[] agg_list = new FldSpec[aggAttrArray.length];
+        for(int i=0; i< aggAttrArray.length;i++){
+            agg_list[i] = new FldSpec (new RelSpec(RelSpec.outer),aggAttrArray[i]);
+        }
+
+        FldSpec[] projlist1 = new FldSpec[attrType.length];
+        RelSpec rel1 = new RelSpec(RelSpec.outer);
+        for(int i =0; i < attrType.length;i++) {
+                projlist1[i] = new FldSpec(rel1, i+1);
+        }
+
+        GroupBy gb = new GroupBy();
+        try{
+            gb.GroupBywithSort(attrType,attrType.length,attrSize,new Heapfile(tableName),group_by_attr,agg_list,new AggType(aggrType),projlist1,attrType.length,n_pages);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+
+        }
+
     }
 
     private void output_inlj(String outerTableName, int outerAttrNo, String innerTableName, int innerAttrNo, String operator, int n_pages, boolean materialize, String outputTableName) {
