@@ -9,7 +9,6 @@ public class TableMetadata implements Serializable {
     public short[] attrSize;
     public ArrayList<String> indexNameList = new ArrayList<>();
 
-
     public short[] getAttrSize() {
         return attrSize;
     }
