@@ -85,6 +85,8 @@ public class TopK_HashJoin extends Iterator implements GlobalConst {
                         scanTuple.tupleCopy(iscan[i].get_next());
                         if (scanTuple == null && runningKCount < k) {
                             System.out.println("No Top K elements can be found from these two tables");
+                            continueWhile = false;
+                            break;
                         } else if (scanTuple != null) {
                             int joinAttrPosition = 0;
                             if (i == 0) {

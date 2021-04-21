@@ -115,7 +115,8 @@ class Phase3InterfaceTestDriver extends TestDriver
         //output_table r_sii2000_1_75_200_bts
         //skyline BTSS 2,3 r_sii2000_1_75_200 5 MATER r_sii2000_1_75_200_btss
         //TOPKJOIN HASH 3 r_sii2000_1_75_200 1 2 r_sii2000_10_10_10 1 2 5 MATER topk_hash1
-        //output_table topk_hash
+        //TOPKJOIN NRA 3 r_sii2000_1_75_200 1 2 r_sii2000_10_10_10 1 2 5 MATER topk_hash1
+        //output_table topk_hash1
 
         String command;
         Scanner sc = null;
@@ -365,7 +366,15 @@ class Phase3InterfaceTestDriver extends TestDriver
                         }
 
                     } else if (joinType.equals("NRA")) {
-                        //Blake
+                        TopK_NRAJoin topk = new  TopK_NRAJoin(
+                                attrType1, attrType1.length, attrSize1,
+                                new FldSpec(new RelSpec(RelSpec.outer), joinAttr1), new FldSpec(new RelSpec(RelSpec.outer), mergeAttr1),
+                                attrType2, attrType2.length, attrSize2,
+                                new FldSpec(new RelSpec(RelSpec.outer), joinAttr2),  new FldSpec(new RelSpec(RelSpec.outer), mergeAttr2),
+                                tableName1,
+                                tableName2,
+                                k,
+                                num_pages,outTableName,tableMetadataMap);
                     }
                 } else {
                     System.out.println("No index present for attribute "+mergeAttr2+ " for table "+tableName2+". Please create an index on this attribute to use TopK on this attribute");

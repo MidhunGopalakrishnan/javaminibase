@@ -4,6 +4,8 @@ import bufmgr.PageNotReadException;
 import global.AttrType;
 import global.GlobalConst;
 import global.IndexType;
+import global.TableMetadata;
+import heap.Heapfile;
 import heap.InvalidTupleSizeException;
 import heap.InvalidTypeException;
 import heap.Tuple;
@@ -18,6 +20,9 @@ import java.util.HashMap;
 import java.util.Arrays;
 
 public class TopK_NRAJoin extends Iterator implements GlobalConst {
+
+    private static final int TOPK_COLUMN_LENGTH = 6;
+    private static short STR_LEN = 10;
 
     /**constructor
      *Initialize the two relations which are joined, including relation type,
@@ -35,9 +40,9 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
      *@param k number of tuples to return
      *@param relationName1  access hfapfile for right i/p to join
      *@param relationName2
-     *@param numOfColumns1
-     *@param numOfColumns2
-     *@param joinAttrTable1
+     *@param //numOfColumns1
+     *@param //numOfColumns2
+     *@param //joinAttrTable1
      *@exception IOException some I/O fault
      *@exception NestedLoopException exception from this class
      */
@@ -49,37 +54,41 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
             java.lang.String relationName1,
             java.lang.String relationName2,
             int k,
-            int  n_pages,
-            int numOfColumns1,
-            int numOfColumns2,int joinAttrTable1,int joinAttrTable2,int mergeAttrTable1,int mergeAttrTable2
-    )
+            int  n_pages, String outputTableName,HashMap<String, TableMetadata> tableMetadataMap
+            )
     {
+        boolean updateMetadataTable = false;
+        int joinAttrTable1 = joinAttr1.offset;
+        int mergeAttrTable1 = mergeAttr1.offset;
+        int joinAttrTable2 = joinAttr2.offset;
+        int mergeAttrTable2 = mergeAttr2.offset;
 
-        FldSpec[] projlist1 = new FldSpec[numOfColumns1];
+        AttrType[] outAttrType = new AttrType[TOPK_COLUMN_LENGTH];
+        short[] outAttrSize =null;
+
+        FldSpec[] projlist1 = new FldSpec[len_in1];
         RelSpec rel1 = new RelSpec(RelSpec.outer);
-        for(int i =0; i < numOfColumns1;i++) {
-            projlist1[i] = new FldSpec(rel1, i+1);
+        for (int i = 0; i < len_in1; i++) {
+            projlist1[i] = new FldSpec(rel1, i + 1);
         }
 
-        FldSpec[] projlist2 = new FldSpec[numOfColumns2];
+        FldSpec[] projlist2 = new FldSpec[len_in2];
         RelSpec rel2 = new RelSpec(RelSpec.outer);
-        for(int i =0; i < numOfColumns1;i++) {
-            projlist2[i] = new FldSpec(rel2, i+1);
+        for (int i = 0; i < len_in2; i++) {
+            projlist2[i] = new FldSpec(rel2, i + 1);
         }
 
-        // TODO : set to null as of now considering user input will not have a where clause attached
         CondExpr[] expr = new CondExpr[2];
         expr[0] = null;
         expr[1] = null;
 
         IndexScan[] iscan = new IndexScan[2];
 
-
         try {
-            iscan[0] = new IndexScan(new IndexType(IndexType.B_Index), relationName1, "BTreeIndex" + relationName1,
-                    in1, t1_str_sizes, numOfColumns1, numOfColumns1, projlist1, expr, numOfColumns1, false);
-            iscan[1] = new IndexScan(new IndexType(IndexType.B_Index), relationName2, "BTreeIndex" + relationName2,
-                    in2, t2_str_sizes, numOfColumns2, numOfColumns2, projlist2, expr, numOfColumns2, false);
+            iscan[0] = new IndexScan(new IndexType(IndexType.B_Index), relationName1, relationName1 + "UNCLUSTBTREE" + mergeAttrTable1,
+                    in1, t1_str_sizes, len_in1, len_in1, projlist1, expr, len_in1, false);
+            iscan[1] = new IndexScan(new IndexType(IndexType.B_Index), relationName2, relationName2 + "UNCLUSTBTREE" + mergeAttrTable2,
+                    in2, t2_str_sizes, len_in2, len_in2, projlist2, expr, len_in2, false);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -468,6 +477,35 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                     }
                 } // end for loop (duplicate conditional sorting)
 
+                //initialize for output Tuple
+                Heapfile outHeap = null;
+                Tuple outTuple = new Tuple();
+                if (!outputTableName.equals("")){
+                    if (!outputTableName.equals("")) {
+                        outHeap = new Heapfile(outputTableName);
+                        //populate the attrType and attrSize and build a Tuple Header
+                        outAttrType[0] = new AttrType(in1[joinAttrTable1-1].attrType);
+                        outAttrType[1] = new AttrType(in1[mergeAttrTable1-1].attrType);
+                        outAttrType[2] = new AttrType(AttrType.attrInteger);
+                        outAttrType[3] = new AttrType(in2[mergeAttrTable2-1].attrType);
+                        outAttrType[4] = new AttrType(AttrType.attrInteger);
+                        outAttrType[5] = new AttrType(AttrType.attrInteger);
+
+                        if(in1[joinAttrTable1-1].attrType==AttrType.attrString){
+                            outAttrSize = new short[1];
+                            outAttrSize[0] = STR_LEN;
+                        }
+
+                        try {
+                            outTuple.setHdr((short) outAttrType.length, outAttrType, outAttrSize);
+                        } catch (Exception e) {
+                            System.err.println("*** error in Tuple.setHdr() ***");
+                            e.printStackTrace();
+                        }
+
+                    }
+                }
+
                 // explicitly set pLBmin to kth pLB value because it is sorted now
                 // pLBmin = pLB[k-1];         // TODO: CHANGE IF K +10 is changed. //Done
                 pLBmin = Float.parseFloat(Bounds[k-1][3]);
@@ -506,6 +544,19 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                                 if(foundVal2.compareTo("") == 0){
                                     foundVal2 = "-";
                                 }
+
+                                //insert to output Heap File
+                                if(!outputTableName.equals("")){
+                                    outTuple.setStrFld(1,Bounds[j][0]);
+                                    outTuple.setIntFld(2,Integer.parseInt(Bounds[j][3]));
+                                    outTuple.setIntFld(3,Integer.parseInt(foundVal1));
+                                    outTuple.setIntFld(4,Integer.parseInt(foundVal2));
+                                    outTuple.setIntFld(5,Integer.parseInt(tupleVal1));
+                                    outTuple.setIntFld(6,Integer.parseInt(tupleVal2));
+
+                                    outHeap.insertRecord(outTuple.returnTupleByteArray());
+                                    updateMetadataTable = true;
+                                }
                                 System.out.printf("%-14s%-14s", foundVal1,foundVal2);
                                 System.out.printf("%-8s%-8s\n",tupleVal1, tupleVal2);
                                 for(int l = j; l < Bounds.length-1; l++){
@@ -526,7 +577,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                 for(int i=0; i < 2; i++) {
                     Tuple scanTuple = new Tuple();
                     try {
-                        scanTuple.setHdr((short) numOfColumns1, in1, t1_str_sizes);
+                        scanTuple.setHdr((short) len_in1, in1, t1_str_sizes);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -539,7 +590,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                     if (scanTuple == null && countK < k) {
                         System.out.println("No Top K elements can be found from these two tables");
                     } else if (scanTuple != null) {
-                        scanTuple.print(in1);
+//                        scanTuple.print(in1);
                         //                      if (!tupleTracker.containsKey(scanTuple.getStrFld(1))) { //TODO : change hardcoded value of 1. First value is not always the join attribute, also it wont be string always
                         int position = mergeAttrTable1;
                         if(i==1){
@@ -679,6 +730,11 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
             Runtime.getRuntime().exit(1);
         }
 
+        //update metadatatable
+        if(updateMetadataTable){
+            TableMetadata tm = new TableMetadata(outputTableName, outAttrType, outAttrSize);
+            tableMetadataMap.put(outputTableName, tm);
+        }
 
     } // End Constructor
 
