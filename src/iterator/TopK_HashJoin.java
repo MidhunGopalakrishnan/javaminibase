@@ -14,7 +14,7 @@ public class TopK_HashJoin extends Iterator implements GlobalConst {
 
     private static short REC_LEN1 = 15;
     private static final int TOPK_COLUMN_LENGTH = 6;
-    private static short STR_LEN = 10;
+    private static short STR_LEN = 13;
 
     public TopK_HashJoin(
             AttrType[] in1, int len_in1, short[] t1_str_sizes, FldSpec joinAttr1,
@@ -82,7 +82,11 @@ public class TopK_HashJoin extends Iterator implements GlobalConst {
                                 e.printStackTrace();
                             }
                         }
-                        scanTuple.tupleCopy(iscan[i].get_next());
+                        Tuple temp = iscan[i].get_next();
+                        if(temp== null) {
+                            continue;
+                        }
+                        scanTuple.tupleCopy(temp);
                         if (scanTuple == null && runningKCount < k) {
                             System.out.println("No Top K elements can be found from these two tables");
                             continueWhile = false;
@@ -186,61 +190,117 @@ public class TopK_HashJoin extends Iterator implements GlobalConst {
                     Heapfile hf1 = new Heapfile(relationName1);
                     Heapfile hf2 = new Heapfile(relationName2);
 
+                    Scan scan = null;
+
                     if (btf1 != null && btf2 != null) {
 
                         Tuple scanTuple1 = new Tuple();
+                        Tuple scanTuple2 = new Tuple();
+                        Tuple temp = null;
+
+                        ArrayList<TopKData> dataList = new ArrayList<>();
+
+                        try {
+                            scan = new Scan(hf1);
+                        } catch (Exception e) {
+                            //status = FAIL;
+                            e.printStackTrace();
+                            Runtime.getRuntime().exit(1);
+                        }
+                        RID rid = new RID();
+                        ArrayList[] combinedList = new ArrayList[3];
                         try {
                             scanTuple1.setHdr((short) in1.length, in1, t1_str_sizes);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
+                        while((temp = scan.getNext(rid))!=null){
+                            scanTuple1.tupleCopy(temp);
+                            String key = scanTuple1.getStrFld(joinAttrTable1);
+                            if(tupleTrackerV2.keySet().contains(key)){
+                                combinedList = tupleTrackerV2.get(key);
+                                if(!combinedList[0].contains(scanTuple1.getIntFld(mergeAttrTable1))){
+                                    combinedList[0].add(scanTuple1.getIntFld(mergeAttrTable1));
+                                }
+                            }
+                        }
+                        try {
+                            scan = new Scan(hf2);
+                        } catch (Exception e) {
+                            //status = FAIL;
+                            e.printStackTrace();
+                            Runtime.getRuntime().exit(1);
+                        }
+                        rid = new RID();
 
-                        Tuple scanTuple2 = new Tuple();
                         try {
                             scanTuple2.setHdr((short) in2.length, in2, t2_str_sizes);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
-                        ArrayList<TopKData> dataList = new ArrayList<>();
-                        for (String key : tupleTrackerV2.keySet()) {
-                            KeyClass keyC = new StringKey(key);
-                            BTFileScan bt1 = btf1.new_scan(keyC, keyC);
-                            BTFileScan bt2 = btf2.new_scan(keyC, keyC);
-                            KeyDataEntry kd1;
-                            KeyDataEntry kd2;
-                            ArrayList<RID> ridList1 = new ArrayList<>();
-                            ArrayList<RID> ridList2 = new ArrayList<>();
-                            //store RIDs
-                            while ((kd1 = bt1.get_next()) != null) {
-                                LeafData leafData1 = (LeafData) kd1.data;
-                                RID rid1 = new RID(leafData1.getData().pageNo, leafData1.getData().slotNo);
-                                if (!ridList1.contains(rid1)) {
-                                    ridList1.add(rid1);
-                                }
-                            }
-
-                            while ((kd2 = bt2.get_next()) != null) {
-                                LeafData leafData2 = (LeafData) kd2.data;
-                                RID rid2 = new RID(leafData2.getData().pageNo, leafData2.getData().slotNo);
-                                if (!ridList2.contains(rid2)) {
-                                    ridList2.add(rid2);
-                                }
-                            }
-
-                            for (int jj = 0; jj < ridList1.size(); jj++) {
-                                for (int kk = 0; kk < ridList2.size(); kk++) {
-                                    scanTuple1.tupleCopy(hf1.getRecord(ridList1.get(jj)));
-                                    scanTuple2.tupleCopy(hf2.getRecord(ridList2.get(kk)));
-                                    if (!scanTuple1.getStrFld(joinAttrTable1).equals(scanTuple2.getStrFld(joinAttrTable2))) {
-                                        continue;
-                                    }
-//                                    scanTuple1.print(in1);
-//                                    scanTuple2.print(in2);
-                                    TopKData tt = new TopKData(scanTuple1.getStrFld(joinAttrTable1), scanTuple1.getIntFld(mergeAttrTable1), mergeAttrTable1, scanTuple2.getIntFld(mergeAttrTable2), mergeAttrTable2);
-                                    dataList.add(tt);
+                        temp = null;
+                        while((temp = scan.getNext(rid))!=null){
+                            scanTuple2.tupleCopy(temp);
+                            String key = scanTuple2.getStrFld(joinAttrTable1);
+                            if(tupleTrackerV2.keySet().contains(key)){
+                                combinedList = tupleTrackerV2.get(key);
+                                if(!combinedList[1].contains(scanTuple2.getIntFld(mergeAttrTable2))){
+                                    combinedList[1].add(scanTuple2.getIntFld(mergeAttrTable2));
                                 }
                             }
                         }
+
+                        for (String key : tupleTrackerV2.keySet()) {
+                                ArrayList[] combinedListTemp = tupleTrackerV2.get(key);
+                                ArrayList<Integer> rel1ListTemp = combinedListTemp[0];
+                                ArrayList<Integer> rel2ListTemp = combinedListTemp[1];
+                                for(int i=0 ;i < rel1ListTemp.size();i++){
+                                    for(int j=0; j < rel2ListTemp.size();j++){
+                                        TopKData tt = new TopKData(key, rel1ListTemp.get(i), mergeAttrTable1, rel2ListTemp.get(j), mergeAttrTable2);
+                                        dataList.add(tt);
+                                    }
+                                }
+
+                        }
+//                        for (String key : tupleTrackerV2.keySet()) {
+//                            KeyClass keyC = new StringKey(key);
+//                            BTFileScan bt1 = btf1.new_scan(keyC, keyC);
+//                            BTFileScan bt2 = btf2.new_scan(keyC, keyC);
+//                            KeyDataEntry kd1;
+//                            KeyDataEntry kd2;
+//                            ArrayList<RID> ridList1 = new ArrayList<>();
+//                            ArrayList<RID> ridList2 = new ArrayList<>();
+//                            //store RIDs
+//                            while ((kd1 = bt1.get_next()) != null) {
+//                                LeafData leafData1 = (LeafData) kd1.data;
+//                                RID rid1 = new RID(leafData1.getData().pageNo, leafData1.getData().slotNo);
+//                                if (!ridList1.contains(rid1)) {
+//                                    ridList1.add(rid1);
+//                                }
+//                            }
+//
+//                            while ((kd2 = bt2.get_next()) != null) {
+//                                LeafData leafData2 = (LeafData) kd2.data;
+//                                RID rid2 = new RID(leafData2.getData().pageNo, leafData2.getData().slotNo);
+//                                if (!ridList2.contains(rid2)) {
+//                                    ridList2.add(rid2);
+//                                }
+//                            }
+//
+//                            for (int jj = 0; jj < ridList1.size(); jj++) {
+//                                for (int kk = 0; kk < ridList2.size(); kk++) {
+//                                    scanTuple1.tupleCopy(hf1.getRecord(ridList1.get(jj)));
+//                                    scanTuple2.tupleCopy(hf2.getRecord(ridList2.get(kk)));
+//                                    if (!scanTuple1.getStrFld(joinAttrTable1).equals(scanTuple2.getStrFld(joinAttrTable2)) || !scanTuple1.getStrFld(joinAttrTable1).equals(key)) {
+//                                        continue;
+//                                    }
+//                                    scanTuple1.print(in1);
+//                                    scanTuple2.print(in2);
+//                                    TopKData tt = new TopKData(scanTuple1.getStrFld(joinAttrTable1), scanTuple1.getIntFld(mergeAttrTable1), mergeAttrTable1, scanTuple2.getIntFld(mergeAttrTable2), mergeAttrTable2);
+//                                    dataList.add(tt);
+//                                }
+//                            }
+//                        }
 
                         Collections.sort(dataList);
                         System.out.println("TopK Results : ");
@@ -313,6 +373,90 @@ public class TopK_HashJoin extends Iterator implements GlobalConst {
         }
 
     }
+
+//    public TopK_HashJoin(
+//            AttrType[] in1, int len_in1, short[] t1_str_sizes, FldSpec joinAttr1,
+//            FldSpec mergeAttr1,
+//            AttrType[] in2, int len_in2, short[] t2_str_sizes, FldSpec joinAttr2,
+//            FldSpec mergeAttr2,
+//            java.lang.String relationName1,
+//            java.lang.String relationName2,
+//            int k,
+//            int n_pages,String outputTableName, HashMap<String, TableMetadata> tableMetadataMap
+//    ) {
+//        if(outputTableName.equals("") || tableMetadataMap.get(outputTableName)==null) {
+//            int joinAttrTable1 = joinAttr1.offset;
+//            int mergeAttrTable1 = mergeAttr1.offset;
+//            int joinAttrTable2 = joinAttr2.offset;
+//            int mergeAttrTable2 = mergeAttr2.offset;
+//            boolean materialize = false;
+//            if (!outputTableName.equals("")) {
+//                materialize = true;
+//            }
+//
+//            //projection list for outer table
+//            FldSpec[] projlist1 = new FldSpec[len_in1];
+//            RelSpec rel1 = new RelSpec(RelSpec.outer);
+//            for (int i = 0; i < len_in1; i++) {
+//                projlist1[i] = new FldSpec(rel1, i + 1);
+//            }
+//
+//            //projection list for inner table
+//            FldSpec[] projlist3 = new FldSpec[len_in2];
+//            RelSpec rel3 = new RelSpec(RelSpec.outer);
+//            for (int i = 0; i < len_in2; i++) {
+//                projlist3[i] = new FldSpec(rel3, i + 1);
+//            }
+//
+//            //projection list for joined table
+//            FldSpec[] projlist2 = new FldSpec[in1.length + in2.length];
+//            RelSpec rel2 = new RelSpec(RelSpec.innerRel);
+//            for (int i = 0; i < in1.length; i++) {
+//                projlist2[i] = new FldSpec(rel1, i + 1);
+//            }
+//            for (int i = 0; i < in2.length; i++) {
+//                projlist2[i + in1.length] = new FldSpec(rel2, i + 1);
+//            }
+//
+//            CondExpr[] expr = new CondExpr[2];
+//            expr[0] = new CondExpr();
+//            expr[1] = new CondExpr();
+//            expr[0].next  = null;
+//            expr[0].op    = new AttrOperator(AttrOperator.aopEQ);
+//            expr[0].type1 = new AttrType(AttrType.attrSymbol);
+//            expr[0].type2 = new AttrType(AttrType.attrSymbol);
+//            expr[0].operand1.symbol = new FldSpec (new RelSpec(RelSpec.outer),joinAttrTable1);
+//            expr[0].operand2.symbol = new FldSpec (new RelSpec(RelSpec.innerRel),joinAttrTable2);
+//            expr[1] = null;
+//
+//            iterator.Iterator am1 = null;
+//            String rel1IndexFileName = relationName1 + "UNCLUSTBTREE" + joinAttrTable1;
+//            CondExpr[] scanExpr = new CondExpr[2];
+//            scanExpr[0] = null;
+//            scanExpr[1] = null;
+//
+//            try {
+//                am1 = new IndexScan(new IndexType(IndexType.B_Index), relationName1, rel1IndexFileName
+//                        , in1, t1_str_sizes, in1.length, in1.length,
+//                        projlist1, scanExpr, in1.length, false);
+//            } catch (Exception e) {
+//                System.err.println("*** Error creating scan for Index scan");
+//                System.err.println("" + e);
+//                Runtime.getRuntime().exit(1);
+//            }
+//
+//            try {
+//                //modify to accept metadata map and if it should be materialized
+//                HashJoins hJoin = new HashJoins(
+//                        in1, len_in1, t1_str_sizes, in2, len_in2, t2_str_sizes, n_pages,
+//                        am1, relationName1, expr, scanExpr, projlist2, len_in1 + len_in2, materialize, joinAttrTable2,
+//                        tableMetadataMap);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                Runtime.getRuntime().exit(1);
+//            }
+//        }
+//    }
 
     private BTreeFile createIndexFile(Heapfile table,String tableName,int prefAttr,int numOfColumns) {
         Scan scan = null;

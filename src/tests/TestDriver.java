@@ -125,7 +125,7 @@ public class TestDriver {
    *
    * @return a boolean value indicates whether ALL the tests have passed
    */
-  public boolean runTests () throws IOException, AddFileEntryException, GetFileEntryException, ConstructPageException {
+  public boolean runTests () throws IOException, AddFileEntryException, GetFileEntryException, ConstructPageException, hash.AddFileEntryException, hash.GetFileEntryException, hash.ConstructPageException {
     
     System.out.println ("\n" + "Running " + testName() + " tests...." + "\n");
     

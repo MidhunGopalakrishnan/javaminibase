@@ -718,7 +718,7 @@ public class HashFile extends IndexFile implements GlobalConst {
 	 * is not the id of the data entry)
 	 * 
 	 * @param key the key in pair <key, rid>. Input Parameter.
-	 * @param rid the rid in pair <key, rid>. Input Parameter.
+	 * @param //rid the rid in pair <key, rid>. Input Parameter.
 	 * @return true if deleted. false if no such record.
 	 * @exception DeleteFashionException    neither full delete nor naive delete
 	 * @exception LeafRedistributeException redistribution error in leaf pages
@@ -778,7 +778,7 @@ public class HashFile extends IndexFile implements GlobalConst {
 				}
 			}
 				PageId overflow_pageid = bucket_page_1.getNextPage();
-				unpinPage(bucket_pid, true);
+				unpinPage(bucket_page_1.getCurPage(), true);
 				
 				if (overflow_pageid.pid == INVALID_PAGE)
 				{

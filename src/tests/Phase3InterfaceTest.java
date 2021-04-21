@@ -20,7 +20,7 @@ class Phase3InterfaceTestDriver extends TestDriver
         implements GlobalConst {
 
     HashMap<String, TableMetadata> tableMetadataMap = new HashMap<>();
-    public static final int STR_LEN = 10;
+    public static final int STR_LEN = 13;
     private static short REC_LEN1 = 15;
     public static final String metadatafileName = "/tmp/tablemetadata.ser";
     public static final String commandFile = "/tmp/reportcommands.txt";
@@ -75,6 +75,9 @@ class Phase3InterfaceTestDriver extends TestDriver
     protected boolean test1() {
 
         boolean continueWhile = true;
+        File obj =null;
+        String command;
+        Scanner sc = null;
 
         if(consoleMode) {
 
@@ -122,14 +125,6 @@ class Phase3InterfaceTestDriver extends TestDriver
         //JOIN SMJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
         //GROUPBY HASH MAX 1 2,3 r_sii2000_1_75_200 5
 
-        String command;
-        Scanner sc = null;
-        File obj = new File(commandFile);
-        try {
-            sc = new Scanner(obj);
-        }catch(Exception e){
-            e.printStackTrace();
-        }
 
         while(continueWhile){
 
@@ -222,6 +217,14 @@ class Phase3InterfaceTestDriver extends TestDriver
                 }
 
             } else {
+                obj = new File(commandFile);
+
+                try {
+                    sc = new Scanner(obj);
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+
                 while (sc.hasNextLine()) {
                     command = sc.nextLine();
                     if(command.startsWith("Test")){
