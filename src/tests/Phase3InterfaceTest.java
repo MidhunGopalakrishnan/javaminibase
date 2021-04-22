@@ -6,6 +6,7 @@ import btree.KeyClass;
 import btree.StringKey;
 import diskmgr.PCounter;
 import global.*;
+import hash.ClusteredHashFile;
 import hash.HashFile;
 import heap.*;
 import index.IndexScan;
@@ -24,7 +25,7 @@ class Phase3InterfaceTestDriver extends TestDriver
     private static short REC_LEN1 = 15;
     public static final String metadatafileName = "/tmp/tablemetadata.ser";
     public static final String commandFile = "/tmp/reportcommands.txt";
-    public static final boolean consoleMode = false;
+    public static final boolean consoleMode = true;
     HashMap<String,Integer> operatorList = new HashMap<>();
 
     public Phase3InterfaceTestDriver() {
@@ -112,7 +113,7 @@ class Phase3InterfaceTestDriver extends TestDriver
         //insert_data r_sii2000_1_75_200 src/data/phase3demo/r_sii2000_10_10_10.csv
         //delete_data r_sii2000_1_75_200 src/data/phase3demo/r_sii2000_10_10_10.csv
         //output_table r_sii2000_1_75_200
-        //output_index r_sii2000_1_75_200 1
+        //output_index r_sii2000_10_10_10 1
         //skyline SFS 2,3 r_sii2000_1_75_200 5 MATER r_sii2000_1_75_200_sfs
         //output_table r_sii2000_1_75_200_sfs
         //skyline BTS 2,3 r_sii2000_1_75_200 5 MATER r_sii2000_1_75_200_bts
@@ -124,7 +125,7 @@ class Phase3InterfaceTestDriver extends TestDriver
         //JOIN NLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
         //JOIN SMJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
         //GROUPBY HASH MAX 1 2,3 r_sii2000_1_75_200 5
-
+        //create_table CLUSTERED HASH 1 src/data/phase3demo/r_sii2000_10_10_10.csv
 
         while(continueWhile){
 
@@ -1312,10 +1313,10 @@ class Phase3InterfaceTestDriver extends TestDriver
 
             } else if(unclustered && !btree) {
                 // unclustered Hash
-                printKeysForUnclustBTree(tableName,indexFileName,attrNo,IndexType.Hash);
+                printKeysForHashFile(tableName,indexFileName,attrNo,IndexType.Hash);
             } else {
                 // clustered Hash
-                printKeysForUnclustBTree(tableName,indexFileName,attrNo,IndexType.Hash);
+                printKeysForHashFile(tableName,indexFileName,attrNo,IndexType.Hash);
             }
 
         } else {
@@ -1323,6 +1324,23 @@ class Phase3InterfaceTestDriver extends TestDriver
         }
 
 
+    }
+
+    private void printKeysForHashFile(String tableName, String indexFileName, int attrNo, int hash) {
+        Heapfile f = null;
+        float utilization = 0.75f;
+        try {
+           f = new Heapfile(tableName);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+
+        ClusteredHashFile c_hash_file=null;
+        try{
+            c_hash_file = new ClusteredHashFile(indexFileName, tableMetadataMap.get(tableName).attrType[attrNo-1].attrType, REC_LEN1, 1, utilization, f);
+            c_hash_file.print_all();
+        }
+        catch(Exception e){e.printStackTrace();}
     }
 
     private void printKeysForUnclustBTree(String tableName, String indexFileName, int attrNo, int indexType) {
@@ -1740,10 +1758,102 @@ class Phase3InterfaceTestDriver extends TestDriver
                 System.out.println("Unclustered Hash index already exist for table " + tableName + " - " + attrNo);
             }
         }
-    private void createClusteredHashIndex(String tableName, int attrNo) {
-        String indexFileName = tableName+"CLUST"+"HASH"+attrNo;
+    private void createClusteredHashIndex(String tableName, int attrNo,Heapfile hf,String fileName) {
+        String indexFileName = tableName+"HASH"+attrNo;
+        float utilization = 0.75f;
+        ClusteredHashFile c_hash_file=null;
+        Heapfile f = null;
+        try{
+            f = new Heapfile(tableName);
+        }
+        catch(Exception e){e.printStackTrace();}
 
-        updateIndexEntryToTableMetadata(tableName,indexFileName);
+        Scanner s;
+        File obj = new File(fileName);
+        int numOfColumns;
+
+        RID rid;
+        Tuple t = new Tuple();
+        int stringCount = 0;
+        try {
+            s = new Scanner(obj);
+            String firstLine = s.nextLine();
+            String[] firstLineArray = firstLine.split(",");
+            numOfColumns = Integer.parseInt(firstLineArray[0]);
+            AttrType[] attrType = new AttrType[numOfColumns];
+            for (int i = 0; i < numOfColumns; i++) {
+                String columnInfo = s.nextLine();
+                String[] columnInfoArr = columnInfo.split(",");
+                String attrType2 = columnInfoArr[1];
+                if (attrType2.equals("STR")) {
+                    attrType[i] = new AttrType(AttrType.attrString);
+                    stringCount++;
+                } else {
+                    attrType[i] = new AttrType(AttrType.attrInteger);
+                }
+            }
+            //set attrSize
+            short[] attrSize = new short[stringCount];
+            for (int i = 0; i < attrSize.length; i++) {
+                attrSize[i] = STR_LEN;
+            }
+
+            try {
+                t.setHdr((short) numOfColumns, attrType, attrSize);
+            } catch (Exception e) {
+                System.err.println("*** error in Tuple.setHdr() ***");
+                e.printStackTrace();
+            }
+
+            c_hash_file = new ClusteredHashFile(indexFileName, attrType[attrNo-1].attrType, REC_LEN1, 1, utilization, f);
+
+            while (s.hasNextLine()) {
+                String dataLine = s.nextLine();
+                String[] dataArray = dataLine.split(",");
+                for (int i = 0; i < dataArray.length; i++) {
+                    try {
+                        if (attrType[i].attrType == AttrType.attrInteger) {
+                            t.setIntFld(i + 1, Integer.parseInt(dataArray[i]));
+                        } else if (attrType[i].attrType == AttrType.attrString) {
+                            t.setStrFld(i + 1, dataArray[i]);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("*** Heapfile creation error ***");
+                        e.printStackTrace();
+                        Runtime.getRuntime().exit(1);
+                    }
+                }
+
+                //tuple ready
+                try {
+                    //System.out.println("\n The insert count is"+insert_count++);
+                    hash.KeyClass key ;
+                    if(attrType[attrNo-1].attrType == AttrType.attrString) {
+                        String value = t.getStrFld(attrNo);
+                        key = new hash.StringKey(value);
+
+                    } else {
+                        int value = t.getIntFld(attrNo);
+                        key = new hash.IntegerKey(value);
+                    }
+                    // System.out.println("Printing tuple "+insert_count++);
+                    // t.print(attrType);
+                    rid = c_hash_file.insertIntoDataFile(key, t.getTupleByteArray());
+                } catch (Exception e) {
+                    System.err.println("*** error in Heapfile.insertRecord() ***");
+                    e.printStackTrace();
+                    Runtime.getRuntime().exit(1);
+                }
+            }
+            s.close();
+            c_hash_file.print_all();
+            //update the table metadata map
+            TableMetadata tm = new TableMetadata(tableName, attrType,attrSize);
+            tableMetadataMap.put(tableName, tm);
+            updateIndexEntryToTableMetadata(tableName,indexFileName);
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void createUnclusteredBTreeIndex(String tableName, int attrNo) {
@@ -1838,8 +1948,17 @@ class Phase3InterfaceTestDriver extends TestDriver
         } else if(commandList.length ==5){
             attrNo = Integer.parseInt(commandList[3]);
             fileName = commandList[4];
-            createHeapFile(fileName);
-            createClusteredHashIndex(fileName,attrNo);
+//            createHeapFile(fileName);
+            int fileNameStartIndex = fileName.lastIndexOf("/");
+            int dotIndex = fileName.lastIndexOf(".");
+            tableName = fileName.substring(fileNameStartIndex+1,dotIndex);
+            Heapfile hf = null;
+            try {
+                hf = new Heapfile(tableName);
+            }catch (Exception e) {
+                e.printStackTrace();
+            }
+            createClusteredHashIndex(tableName,attrNo,hf,fileName);
         } else {
             System.out.println("Invalid syntax. Please recheck");
         }

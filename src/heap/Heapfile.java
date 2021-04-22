@@ -428,6 +428,7 @@ public class Heapfile implements Filetype,  GlobalConst {
 
 			RID rid;
 			rid = currentDataPage.insertRecord(recPtr);
+			PCounter.writeIncrement();
 			dpinfo.recct++;
 			dpinfo.availspace = currentDataPage.available_space();
 

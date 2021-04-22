@@ -396,6 +396,8 @@ public class ClusteredHashFile extends IndexFile implements GlobalConst {
 
     void rehash(PageId bucket_id_1, PageId bucket_id_2, Boolean firstTime) {
         PageId inserted_pageid;
+        PCounter.readIncrement();
+        PCounter.writeIncrement();
         // Read records from bucket_page_1, hash it with level+1 and insert/leave it in
         // the corresponding page
         HashLeafPage currentPage;
@@ -881,7 +883,7 @@ public class ClusteredHashFile extends IndexFile implements GlobalConst {
             ConstructPageException, DeleteRecException, IndexSearchException, IOException, InvalidTupleSizeException, ReplacerException, HashOperationException, PageUnpinnedException, InvalidFrameNumberException, PageNotReadException, BufferPoolExceededException, PagePinnedException, BufMgrException
     {
 
-        ArrayList<PageId> pidInDataFile = new ArrayList<PageId>();
+        ArrayList<RID> pidInDataFile = new ArrayList<RID>();
         int hash_value = hash_record(key);
         int bucket_to_search = hash_value % (int) Math.pow(2, h_0 + level);
         if (bucket_to_search <= split_ptr_loc)
@@ -899,7 +901,7 @@ public class ClusteredHashFile extends IndexFile implements GlobalConst {
                     // get the rid from temp_entry and access the record to check whether the tuple
                     // equals the one to be deleted
                     RID tupleRidInDataFile = ((LeafData) (temp_entry.data)).getData();
-                    pidInDataFile.add(new PageId(tupleRidInDataFile.pageNo.pid));
+                    pidInDataFile.add(new RID(new PageId(tupleRidInDataFile.pageNo.pid), tupleRidInDataFile.slotNo));
                 }
             }
             PageId overflow_pageid = bucket_page_1.getNextPage();
