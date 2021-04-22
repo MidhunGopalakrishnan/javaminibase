@@ -124,7 +124,7 @@ class Phase3InterfaceTestDriver extends TestDriver
         //output_table topk_hash1
         //JOIN NLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
         //JOIN SMJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
-        //GROUPBY HASH MAX 1 2,3 r_sii2000_1_75_200 5
+        //GROUPBY HASH MAX 1 2,3 r_sii2000_10_10_10 5
         //create_table CLUSTERED HASH 1 src/data/phase3demo/r_sii2000_10_10_10.csv
 
         while(continueWhile){
@@ -559,15 +559,38 @@ class Phase3InterfaceTestDriver extends TestDriver
                         attrType1.length + attrType2.length
                 );
                 Tuple t = new Tuple();
+                Tuple temp= null;
+                int strCounts =0;
                 int jTupleLength = attrType1.length + attrType2.length;
                 AttrType[] jList = new AttrType[jTupleLength];
                 for (int i = 0; i < attrType1.length; i++) {
                     jList[i] = attrType1[i];
+                    if(attrType1[i].attrType == AttrType.attrString) {
+                        strCounts++;
+                    }
                 }
                 for (int i = attrType1.length; i < jTupleLength; i++) {
                     jList[i] = attrType2[i - attrType1.length];
+                    if(attrType2[i - attrType1.length].attrType == AttrType.attrString) {
+                        strCounts++;
+                    }
                 }
-                while ((t = nlj.get_next()) != null) {
+
+                short[] jSize = new short[strCounts];
+                for(int j=0;j<jSize.length;j++){
+                    jSize[j] = STR_LEN ;
+                }
+
+                try {
+                    t.setHdr((short) jList.length, jList, jSize);
+                } catch (Exception e) {
+                    System.err.println("*** error in Tuple.setHdr() ***");
+                    e.printStackTrace();
+                }
+
+
+                while ((temp = nlj.get_next()) != null) {
+                    t.tupleCopy(temp);
                     //print the joined tuples
                     //if table should be materialized
                     //add join table to tablemetadata
@@ -718,7 +741,38 @@ class Phase3InterfaceTestDriver extends TestDriver
 
             GroupBy gb = new GroupBy();
             try{
-                gb.GroupBywithHash(attrType,attrType.length,attrSize,new Heapfile(tableName),group_by_attr,agg_list,new AggType(aggrType),projlist1,attrType.length,n_pages);
+                gb.GroupBywithHash(attrType,attrType.length,attrSize,new Heapfile(tableName),group_by_attr,agg_list,new AggType(aggrType),projlist1,agg_list.length,n_pages);
+                Tuple t = new Tuple();
+                t = null;
+                ArrayList<Tuple> ts = null;
+
+                AttrType[] attrOutput = new AttrType[agg_list.length+1];
+                attrOutput[0] = new AttrType(AttrType.attrString);
+                for(int i = 1; i < agg_list.length+1; i++) {
+                    attrOutput[i] = new AttrType(AttrType.attrReal);
+                }
+
+                if(aggrType != AggType.aggSky) {
+                    t = gb.get_next();
+                } else {
+                    ts = gb.get_skys();
+                    t = ts.get(0);
+                    ts.remove(0);
+                }
+                while (t != null) {
+                    if(aggrType != AggType.aggSky) {
+                        t.print(attrOutput);
+                        t = gb.get_next();
+                    } else {
+                        while(!ts.isEmpty()) {
+                            t = ts.get(0);
+                            t.print(attrOutput);
+                            ts.remove(0);
+                        }
+                        ts = gb.get_skys();
+                        if(ts.isEmpty()) { t = null; }
+                    }
+                }
             } catch(Exception e) {
                 e.printStackTrace();
             }
@@ -746,7 +800,38 @@ class Phase3InterfaceTestDriver extends TestDriver
 
         GroupBy gb = new GroupBy();
         try{
-            gb.GroupBywithSort(attrType,attrType.length,attrSize,new Heapfile(tableName),group_by_attr,agg_list,new AggType(aggrType),projlist1,attrType.length,n_pages);
+            gb.GroupBywithSort(attrType,attrType.length,attrSize,new Heapfile(tableName),group_by_attr,agg_list,new AggType(aggrType),projlist1,agg_list.length,n_pages,tableName);
+            Tuple t = new Tuple();
+            t = null;
+            ArrayList<Tuple> ts = null;
+
+            AttrType[] attrOutput = new AttrType[agg_list.length+1];
+            attrOutput[0] = new AttrType(AttrType.attrString);
+            for(int i = 1; i < agg_list.length+1; i++) {
+                attrOutput[i] = new AttrType(AttrType.attrReal);
+            }
+
+            if(aggrType != AggType.aggSky) {
+                t = gb.get_next();
+            } else {
+                ts = gb.get_skys();
+                t = ts.get(0);
+                ts.remove(0);
+            }
+            while (t != null) {
+                if(aggrType != AggType.aggSky) {
+                    t.print(attrOutput);
+                    t = gb.get_next();
+                } else {
+                    while(!ts.isEmpty()) {
+                        t = ts.get(0);
+                        t.print(attrOutput);
+                        ts.remove(0);
+                    }
+                    ts = gb.get_skys();
+                    if(ts.isEmpty()) { t = null; }
+                }
+            }
         } catch(Exception e) {
             e.printStackTrace();
         }

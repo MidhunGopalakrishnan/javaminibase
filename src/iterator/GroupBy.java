@@ -77,7 +77,8 @@ public class GroupBy extends Iterator implements GlobalConst {
             AggType agg_type,
             FldSpec[] proj_list,
             int n_out_flds,
-            int n_pages
+            int n_pages,
+            String tableName
     ) throws Exception {
         _isHash = false;
         _in1 = new AttrType[len_in1];
@@ -144,7 +145,7 @@ public class GroupBy extends Iterator implements GlobalConst {
             CondExpr[] expr = new CondExpr[2];
             expr[0] = null;
             expr[1] = null;
-            IndexScan iscan = new IndexScan(new IndexType(1), "table1", "BTreeIndexFile" + 1,
+            IndexScan iscan = new IndexScan(new IndexType(1), tableName, "BTreeIndexFile" + 1,
                     _in1, _t1_str_sizescopy, n_cols, n_cols, proj_list, expr, n_cols, false);
             _iscan = iscan;
             //btree.BT.printAllLeafPages(BTreeFileList[0].getHeaderPage());
