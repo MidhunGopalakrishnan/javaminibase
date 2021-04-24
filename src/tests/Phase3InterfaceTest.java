@@ -25,7 +25,7 @@ class Phase3InterfaceTestDriver extends TestDriver
     private static short REC_LEN1 = 15;
     public static final String metadatafileName = "/tmp/tablemetadata.ser";
     public static final String commandFile = "/Users/nberlandier/Desktop/command.txt";
-    public static final boolean consoleMode = false;
+    public static final boolean consoleMode = true;
     HashMap<String,Integer> operatorList = new HashMap<>();
 
     public Phase3InterfaceTestDriver() {
@@ -112,14 +112,14 @@ class Phase3InterfaceTestDriver extends TestDriver
         //create_index HASH 2 r_sii2000_1_75_200 --fail
         //insert_data r_sii2000_1_75_200 src/data/phase3demo/r_sii2000_10_10_10.csv
         //delete_data r_sii2000_1_75_200 src/data/phase3demo/r_sii2000_10_10_10.csv
-        //output_table r_sii2000_1_75_200
+        //output_table r_sii2000_10_10_10_dup
         //output_index r_sii2000_10_10_10 1
         //skyline SFS 2,3 r_sii2000_1_75_200 5 MATER r_sii2000_1_75_200_sfs
         //output_table r_sii2000_1_75_200_sfs
         //skyline BTS 2,3 r_sii2000_1_75_200 5 MATER r_sii2000_1_75_200_bts
         //output_table r_sii2000_1_75_200_bts
         //skyline BTSS 2,3 r_sii2000_1_75_200 5 MATER r_sii2000_1_75_200_btss
-        //TOPKJOIN HASH 3 r_sii2000_1_75_200 1 2 r_sii2000_10_10_10 1 2 5 MATER topk_hash1
+        //TOPKJOIN HASH 3 r_sii2000_10_10_10 1 2 r_sii2000_10_10_10_dup 3 2 5 MATER topk_hash1
         //TOPKJOIN NRA 3 r_sii2000_1_75_200 1 2 r_sii2000_10_10_10 1 2 5 MATER topk_hash1
         //output_table topk_hash1
         //JOIN NLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
@@ -943,9 +943,6 @@ class Phase3InterfaceTestDriver extends TestDriver
         short[] attrSize2 = tableMetadataMap.get(tableName2).attrSize;
 
         if(tableMetadataMap.get(outTableName)==null) {
-            //check if index files present for the mergeAttrs. Else throw error
-            if (checkIfIndexExists(tableName1,mergeAttr1,"UNCLUST","BTREE")) {
-                if (checkIfIndexExists(tableName1,mergeAttr1,"UNCLUST","BTREE")) {
 
                     if (joinType.equals("HASH")) {
                         try {
@@ -976,12 +973,6 @@ class Phase3InterfaceTestDriver extends TestDriver
                                 k,
                                 num_pages,outTableName,tableMetadataMap);
                     }
-                } else {
-                    System.out.println("No index present for attribute "+mergeAttr2+ " for table "+tableName2+". Please create an index on this attribute to use TopK on this attribute");
-                }
-            } else {
-                System.out.println("No index present for attribute "+mergeAttr1+ " for table "+tableName1+". Please create an index on this attribute to use TopK on this attribute");
-            }
         } else {
             System.out.println("OUTTABLENAME specified already exists. Please specify a new output table name");
         }
