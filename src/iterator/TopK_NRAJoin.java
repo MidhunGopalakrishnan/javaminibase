@@ -5,6 +5,7 @@ import global.AttrType;
 import global.GlobalConst;
 import global.IndexType;
 import global.TableMetadata;
+
 import heap.Heapfile;
 import heap.InvalidTupleSizeException;
 import heap.InvalidTypeException;
@@ -19,10 +20,22 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Arrays;
 
+import btree.*;
+import bufmgr.PageNotReadException;
+import global.*;
+import heap.*;
+import index.IndexException;
+import index.IndexScan;
+
+import java.io.IOException;
+import java.util.*;
+
 public class TopK_NRAJoin extends Iterator implements GlobalConst {
 
     private static final int TOPK_COLUMN_LENGTH = 6;
-    private static short STR_LEN = 10;
+    private static short REC_LEN1 = 15;
+    private static short STR_LEN = 13;
+    HashMap<String, TableMetadata> tableMetadataMap = new HashMap<>();
 
     /**constructor
      *Initialize the two relations which are joined, including relation type,
@@ -62,6 +75,61 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         int mergeAttrTable1 = mergeAttr1.offset;
         int joinAttrTable2 = joinAttr2.offset;
         int mergeAttrTable2 = mergeAttr2.offset;
+        this.tableMetadataMap = tableMetadataMap;
+        System.out.println("\n\nJOIN" + joinAttrTable1);
+        //boolean[] attributes = new boolean[];
+        boolean isString = false;
+        boolean isFloat = false;
+        if(in1[joinAttrTable1-1].attrType==AttrType.attrString){
+            // if Join attr 1 is a String
+            isString = true;
+            if(joinAttrTable1 == 1){
+                // this is the assumed case
+                // String is in the first collumn
+            }else if(joinAttrTable1 == 2){
+                // String is in the Second Collumn
+                //TODO: ADD FUNCTIONALITY
+
+            }else if(joinAttrTable1 == 3){
+                // String is in the Third Collumn
+                //TODO: ADD FUNCTIONALITY
+
+            }
+        }
+        // Check if Join attr 2 is String and where
+        if(in2[joinAttrTable2-1].attrType==AttrType.attrString){
+            // if Join attr 2 is a String
+            if(joinAttrTable2 == 1){
+                // this is the assumed case
+                // String is in the first collumn
+            }else if(joinAttrTable2 == 2){
+                // String is in the Second Collumn
+                //TODO: ADD FUNCTIONALITY
+
+            }else if(joinAttrTable2 == 3){
+                // String is in the Third Collumn
+                //TODO: ADD FUNCTIONALITY
+
+            }
+        }
+        // check if join attr is Float
+        if(in2[joinAttrTable1-1].attrType==AttrType.attrReal) {
+            isFloat = true;
+        }
+
+        if(in1[joinAttrTable1-1].attrType==AttrType.attrInteger || in1[joinAttrTable1-1].attrType==AttrType.attrReal){
+            // if join attr is an int or float
+            // TODO: ADD FUNCTIONALITY
+
+        }
+        // Table 2
+        if(in2[joinAttrTable2-1].attrType==AttrType.attrInteger || in2[joinAttrTable2-1].attrType==AttrType.attrReal){
+            // if join attr is an int or float
+            // TODO: ADD FUNCTIONALITY
+
+        }
+
+        System.out.println("\n\nMERGE:" + mergeAttrTable1);
 
         AttrType[] outAttrType = new AttrType[TOPK_COLUMN_LENGTH];
         short[] outAttrSize =null;
@@ -83,7 +151,16 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         expr[1] = null;
 
         IndexScan[] iscan = new IndexScan[2];
-
+// NEW
+        if(!tableMetadataMap.get(relationName1).indexNameList.contains(relationName1 + "UNCLUSTBTREE" + mergeAttrTable1)){
+            //create index and add entry in metadata table
+            createUnclusteredBTreeIndex(relationName1,  mergeAttrTable1);
+        }
+        if(!tableMetadataMap.get(relationName2).indexNameList.contains(relationName2 + "UNCLUSTBTREE" + mergeAttrTable2)) {
+            //create index
+            createUnclusteredBTreeIndex(relationName2,  mergeAttrTable2);
+        }
+//END
         try {
             iscan[0] = new IndexScan(new IndexType(IndexType.B_Index), relationName1, relationName1 + "UNCLUSTBTREE" + mergeAttrTable1,
                     in1, t1_str_sizes, len_in1, len_in1, projlist1, expr, len_in1, false);
@@ -94,6 +171,8 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         }
 
         //k = k + 10; // TODO: if changed, change line pLBmin = pLB[k-10]
+        boolean oneGone = false;
+        boolean twoGone = false;
         int arrSize = 4000;
         Tuple temp_tuple = new Tuple();
         boolean t1 = false;
@@ -102,7 +181,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         String tempStr2 = "";
         float tempNum1 = 0;
         float tempNum2 = 0;
-        int findk = 0;
+        float findk = 0;
         float temp1 = 0;
         float temp2 = 0;
         int previous = 0;
@@ -111,6 +190,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         boolean calculateThresh = false;
         boolean continueWhile = true;
         Boolean rel11 = false;
+        Boolean rel22 = false;
         int countK = 0;
         HashMap<String,Integer> tupleTracker = new HashMap<String, Integer>();
         int tupleCount =0;
@@ -121,6 +201,8 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         float[][] temp = new float[arrSize][4];
         String[] tempArr1 = new String[4];
 
+        int last = 0;
+        int last1 = 0;
         int count = 0;
         String[][] added = new String[arrSize][2];
         String[][] pLBCalc = new String[arrSize][4];  // [String,index,relation,value]
@@ -136,11 +218,11 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         for(int i = 0; i < arrSize; i++){
             for(int j = 0; j < 4; j++){
 
-                pLBCalc[i][j] = "0";
+                pLBCalc[i][j] = "0.0";
                 pUBCalc[i][j] = String.valueOf(maxValue); // set all of upper bound to max value
-                Bounds[i][j] = "0";
+                Bounds[i][j] = "0.0";
                 if(j==3){
-                    Bounds[i][j+1] = "0";
+                    Bounds[i][j+1] = "0.0";
                 }
                 if(j < 3){
                     found[i][j] = "0"; // initialize the value of the found array to 0
@@ -150,295 +232,14 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
 
         try {
             while (continueWhile) {
-                // for loop to calculate Bounds array, pLBmin(minimun lower bound)
 
-                float temp11 = 0;
-                float temp21 = 0;
-                boolean complete = false;
-                boolean notIncluded = false;
-                boolean notIncluded1 = false;
-                boolean notIncluded2 = false;
-                boolean notIncluded3 = false;
-                for(int i = count; i < arrSize && !(pLBCalc[i][0].compareTo("0") == 0);i++){
-                    String checkerLB = pLBCalc[i][0];
-                    pLBrow[i%2] = pLBCalc[i][0];
-                    for(int j = 0; j < Bounds.length ; j++){
-                        if(count > 0 && Bounds[j][0].compareTo("0") == 0){
-                            notIncluded = contains(Bounds,pLBrow[0]);
-                            notIncluded1 = contains(Bounds,pLBrow[1]);
-                            notIncluded2 = contains2(Bounds,pLBrow[0],pLBCalc[i][1]);
-                            //notIncluded3 = contains2(Bounds,pLBrow[1],pLBCalc[i][1]);
-                            if(!notIncluded){
-                                int check = 0;
-                                while(!(pLBCalc[check][0].compareTo("0") == 0)){
-                                    if((pLBCalc[check][0].compareTo(pLBrow[0]) == 0)){
-                                        Bounds[count][0] = pLBCalc[check][0];
-                                        if(pLBCalc[check][2].compareTo("0") == 0) {
-                                            Bounds[count][1] = pLBCalc[check][1];
-                                            Bounds[count][2] = "$";
-                                        }else{
-                                            Bounds[count][2] = pLBCalc[check][1];
-                                            Bounds[count][1] = "$";
-                                        }
-                                        Bounds[count][3] = pLBCalc[check][3];
-                                        Bounds[count][4] = pUBCalc[check][3];
-                                        count++;
-                                    }
-                                    check++;
-                                }
-
-                            }
-                            if(!notIncluded1){
-                                int check = 0;
-                                while(!(pLBCalc[check][0].compareTo("0") == 0)){
-                                    if((pLBCalc[check][0].compareTo(pLBrow[1]) == 0)){
-                                        Bounds[count][0] = pLBCalc[check][0];
-                                        if(pLBCalc[check][2].compareTo("0") == 0) {
-                                            Bounds[count][1] = pLBCalc[check][1];
-                                            Bounds[count][2] = "$";
-                                        }else{
-                                            Bounds[count][2] = pLBCalc[check][1];
-                                            Bounds[count][1] = "$";
-                                        }
-                                        Bounds[count][3] = pLBCalc[check][3];
-                                        Bounds[count][4] = pUBCalc[check][3];
-                                        count++;
-                                    }
-                                    check++;
-                                }
-                            }
-                            notIncluded2 = contains2(Bounds,pLBCalc[i][0],pLBCalc[i][1]);
-                            if(!notIncluded2){
-                                int check = 0;
-                                //while(!(pLBCalc[check][0].compareTo("0") == 0)){
-                                    //if((pLBCalc[check][0].compareTo(pLBCalc[i][0]) == 0)){
-                                        Bounds[count][0] = pLBCalc[i][0];
-                                        if(pLBCalc[i][2].compareTo("0") == 0) {
-                                            Bounds[count][1] = pLBCalc[i][1];
-                                            Bounds[count][2] = "$";
-                                        }else{
-                                            Bounds[count][2] = pLBCalc[i][1];
-                                            Bounds[count][1] = "$";
-                                        }
-                                        Bounds[count][3] = pLBCalc[i][3];
-                                        Bounds[count][4] = pUBCalc[i][3];
-                                        count++;
-                                    //}
-                                    check++;
-                                //}
-                            }
-
-
-                            break;
-                        }
-                        String checkerB = Bounds[j][0];
-                        if(checkerLB.compareTo(checkerB) == 0){
-                            rel11 = false;
-                            // found in Bounds seen 2+ The String is in bounds at least once.
-                            if(pLBCalc[i][2].compareTo("0") == 0 ){
-                                rel11 = true;
-                            }
-                            if(rel11){ // if new String that has been seen before is in relation 1
-                                for(int l = 0; l < arrSize && !(pLBCalc[l][0].compareTo("0") == 0); l++){
-                                    if(pLBCalc[l][2].compareTo("1") == 0 && pLBCalc[l][0].compareTo(Bounds[j][0]) == 0){
-                                        Bounds[j][0] = pLBCalc[l][0];
-                                        if(Bounds[j][1].compareTo("$") == 0){
-                                            Bounds[j][1] = pLBCalc[i][1];
-                                            Bounds[j][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
-                                            Bounds[j][4] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
-                                        }else if(Bounds[j][2].compareTo("$") == 0){
-                                            Bounds[j][2] = pLBCalc[l][1];
-                                            Bounds[j][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
-                                            Bounds[j][4] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
-                                        }
-                                        //Bounds[j][1] = pLBCalc[i][1];
-                                        //Bounds[j][2] = pLBCalc[l][1];
-//                                        if(Bounds[j][3].compareTo(String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]))) > 0 ) {
-//
-//                                        }else{
-//                                            Bounds[j][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[l][3]));
-//                                        }
-
-                                        complete = true;
-                                        rel11 = false;
-                                        break;
-                                    }
-                                }
-                            }
-                            //if(Bounds[j][1])
-                        }else if(checkerLB.compareTo(pLBCalc[i+1][0]) == 0){
-                            // next value is the same as current seen 2+
-                            // need to add pLB to Bounds, then check all of bounds for same String
-                            if(containsMatch(Bounds,pLBCalc[i][1],pLBCalc[i+1][1])){
-                                break;
-                            }
-                            Bounds[count][0] = pLBCalc[i][0];
-                            if(Integer.parseInt(pLBCalc[i][1])%2 == 0) {
-                                Bounds[count][1] = pLBCalc[i][1];
-                                Bounds[count][2] = pLBCalc[i + 1][1];
-                            }else if(Integer.parseInt(pLBCalc[i][1])%2 == 1){
-                                Bounds[count][2] = pLBCalc[i][1];
-                                Bounds[count][1] = pLBCalc[i + 1][1];
-                            }
-                            Bounds[count][3] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[i+1][3]));
-                            Bounds[count][4] = String.valueOf(Integer.parseInt(pLBCalc[i][3]) + Integer.parseInt(pLBCalc[i+1][3]));
-                            count++;
-                            added[count][0] = pLBCalc[i][1];
-                            added[count][1] = pLBCalc[i+1][1];;
-                            break;
-                            /*for(int l = 0; l < Bounds.length && !(Bounds[l][0].compareTo("0") == 0);l++){
-                                if(l==j){
-
-                                }else{ // if not the same index of Bounds
-                                    if(Bounds[l][0].compareTo(Bounds[j][0]) == 0){ // if the letter matches
-                                        if (Bounds[l][1].compareTo(Bounds[j][1]) == 0 ) {
-
-                                        }else{// if Same String with different index1
-                                            for(int m = 0; m < arrSize && !(pLBCalc[m][0].compareTo("0") == 0); m++){ // iterate through pLBCalc for the correct index
-                                                if(pLBCalc[m][1].compareTo(Bounds[l][1]) == 0 ){
-                                                    Bounds[count][0] = pLBCalc[m][0];
-                                                    if(pLBCalc[m][2].compareTo("0") == 0){
-                                                        Bounds[count][1] = pLBCalc[m][1];
-                                                        Bounds[count][2] = pLBCalc[i+1][1];
-                                                    }else{
-                                                        Bounds[count][2] = pLBCalc[m][1];
-                                                        Bounds[count][1] = pLBCalc[i+1][1];
-                                                    }
-                                                    Bounds[count][3] = String.valueOf(Integer.parseInt(pLBCalc[m][3]) + Integer.parseInt(pLBCalc[i+1][3]));
-                                                    count++;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        if(Bounds[l][2].compareTo(Bounds[j][2]) == 0 ) {
-
-                                        }else{// if Same String with different index2
-                                            for(int m = 0; m < arrSize && !(pLBCalc[m][0].compareTo("0") == 0); m++){
-                                                if(pLBCalc[m][2].compareTo(Bounds[l][2]) == 0 ){
-                                                    Bounds[count][3] = String.valueOf(Integer.parseInt(pLBCalc[m][3]) + Integer.parseInt(pLBCalc[i+1][3]));
-                                                    count++;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        if((Bounds[l][2].compareTo("$") == 0)){ // and if on the other relation
-
-                                        }
-                                    }
-                                }
-                            }*/
-
-                        }else if(Bounds[0][0].compareTo("0") == 0){ //empty first add
-                            // not in Bounds Partially seen
-                            Bounds[0][0] = pLBCalc[i][0];
-                            if(pLBCalc[i][2].compareTo("0") == 0 ){
-                                Bounds[0][1] = pLBCalc[i][1];
-                                Bounds[0][2] = "$";
-                            }else{
-                                Bounds[0][1] = "$";
-                                Bounds[0][2] = pLBCalc[i][1];
-                            }
-                            Bounds[0][3] = pLBCalc[i][3];
-                            Bounds[0][4] = pLBCalc[i][3];
-                            count++;
-                            // add second item
-                            Bounds[count][0] = pLBCalc[i+1][0];
-                            if(pLBCalc[i+1][2].compareTo("0") == 0 ){
-                                Bounds[count][1] = pLBCalc[i][1+1];
-                                Bounds[count][2] = "$";
-                            }else{
-                                Bounds[count][1] = "$";
-                                Bounds[count][2] = pLBCalc[i+1][1];
-                            }
-                            Bounds[count][3] = pLBCalc[i+1][3];
-                            Bounds[count][4] = pLBCalc[i+1][3];
-                            count++;
-                            break;
-                        }else if(true){
-
-                        }
-
-                    }
-                }
-                /*
-                if (pLBCalc[0][0].compareTo("0") == 0) {
-
-                } else{
-                    for (int i = 0; i < arrSize && !(pLBCalc[i][0].compareTo("0") == 0); i += 2) {
-                        count = 0;
-                        temp11 = Float.parseFloat(pLBCalc[i][3]);
-                        temp21 = Float.parseFloat(pUBCalc[i][3]);
-                        for (int j = 0; j < arrSize; j++) {
-                            if(pLBCalc[j][0].compareTo(pLBCalc[i][0]) != 0){
-                                continue;
-                            }
-                            //while(pLBCalc[count][0].compareTo(pLBCalc[i][0])==0 ) {
-                            //if(pLBCalc[j][0].compareTo(pLBCalc[i][0]) == 0) {
-                            if (pLBCalc[j][2].compareTo("1") == 0) {
-                                if(pLBCalc[i][0].compareTo(Bounds[count][0] ) != 0 && !complete){
-                                    count++;
-                                    j--;
-                                    continue;
-                                }
-                                temp1 = temp11 + Float.parseFloat(pLBCalc[j][3]);
-                                temp2 = temp21 + Float.parseFloat(pUBCalc[j][3]);
-                                // Bounds contains the value for pLB and pUB with the Key
-                                Bounds[count][0] = pLBCalc[i][0]; // set the String
-                                Bounds[count][1] = pLBCalc[i][1];
-                                Bounds[count][2] = pLBCalc[j][1];
-                                Bounds[count][3] = String.valueOf((int) temp1);
-                                Bounds[count][4] = String.valueOf((int) temp2);
-                                count++;
-                                temp1 = 0;
-                                temp2 = 0;
-                                complete = true;
-                            }
-                            //}
-//                            else if (!(pLBCalc[j][0].compareTo("0") == 0) && !(pLBCalc[j][1].compareTo(pLBCalc[i][1]) == 0)) {
-//                                Bounds[count][0] = pLBCalc[i][0]; // set the String
-//                                Bounds[count][1] = pLBCalc[i][2];
-//                                Bounds[count][2] = pLBCalc[j][2];
-//                                Bounds[count][3] = String.valueOf((int) temp11);
-//                                Bounds[count][4] = String.valueOf((int) temp21);
-//                                count++;
-//                            }
-                            //}
-                        }
-                        for(int l = 0; l < 2; l++) {
-                            if (!complete) {
-                                Bounds[count][0] = pLBCalc[l][0]; // set the String
-                                //Bounds[count + 1][0] = pLBCalc[l][0];
-                                if (pLBCalc[i][2].compareTo("0") == 0) {
-                                    Bounds[count][1] = pLBCalc[l][2];
-                                    Bounds[count][2] = "$";
-//                                    Bounds[count + 1][1] = pLBCalc[i + 1][2];
-//                                    Bounds[count + 1][2] = "$";
-                                } else {
-                                    Bounds[count][1] = "$";
-                                    Bounds[count][2] = pLBCalc[l][2];
-//                                    Bounds[count + 1][1] = "$";
-//                                    Bounds[count + 1][2] = pLBCalc[i + 1][2];
-                                }
-//                                Bounds[count][3] = String.valueOf((int) temp11);
-//                                Bounds[count][4] = String.valueOf((int) temp21);
-                                Bounds[count ][3] = pLBCalc[l][3];
-                                Bounds[count][4] = pUBCalc[l][3];
-                                count++;
-                            }
-                        }
-                        //pLB[i] = temp1;
-                    } // end for loop
-                }
-
-                 */
-                // sort pLB
-                //Arrays.sort(pLB, Collections.reverseOrder());
+                // sort Bounds
                 // sort based on pLB
-                for(int i = 0; i < arrSize-1 && !(Bounds[i][0].compareTo("0") == 0); i++){
+                for(int i = 0; i < arrSize-1 && !(Bounds[i][0].compareTo("0.0") == 0); i++){
                     int mindex = i;
-                    for(int j = i+1; j<arrSize && !(Bounds[j][0].compareTo("0") == 0);j++) {
-                        int tempy1 = Integer.parseInt(Bounds[j][3]);
-                        int tempy2 = Integer.parseInt(Bounds[mindex][3]);
+                    for(int j = i+1; j<arrSize && !(Bounds[j][0].compareTo("0.0") == 0);j++) {
+                        float tempy1 = Float.parseFloat(Bounds[j][3]);
+                        float tempy2 = Float.parseFloat(Bounds[mindex][3]);
                         if (tempy1 > tempy2){
                             mindex = j;
                         }
@@ -447,13 +248,12 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                     Bounds[mindex] = Bounds[i];
                     Bounds[i] = tempArr1;
                 }
-                //Arrays.sort(Bounds, (a, b) -> Integer.parseInt(a[3]) - Integer.parseInt(b[3]) );
                 // tie break with pUB
-                for(int i = 1; i < Bounds.length && !(Bounds[i][0].compareTo("0")== 0); i++){
+                for(int i = 1; i < Bounds.length && !(Bounds[i][0].compareTo("0.0")== 0); i++){
                     float check1 = Float.parseFloat(Bounds[i][3]);
                     float check2 = Float.parseFloat(Bounds[i-1][3]);
                     if(check1 == check2 && check1 != 0 ){
-                        for(int j = 0; j < Bounds.length && !(Bounds[j][0].compareTo("0")== 0) ; j++){
+                        for(int j = 0; j < Bounds.length && !(Bounds[j][0].compareTo("0.0")== 0) ; j++){
                             // the current higher ranked in the tie
                             if(String.valueOf(pLB[i]).compareTo(Bounds[j][1]) == 0 && !t1){
                                 tempNum1 = Float.parseFloat(Bounds[j][2]);
@@ -481,7 +281,8 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                         }
                     }
                 } // end for loop (duplicate conditional sorting)
-
+// TODO: CONDITIONAL OUTPUT BASED ON INPUT DATA TYPES ie. float, int, string
+// This may be done
                 //initialize for output Tuple
                 Heapfile outHeap = null;
                 Tuple outTuple = new Tuple();
@@ -489,10 +290,19 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                     if (!outputTableName.equals("")) {
                         outHeap = new Heapfile(outputTableName);
                         //populate the attrType and attrSize and build a Tuple Header
-                        outAttrType[0] = new AttrType(in1[joinAttrTable1-1].attrType);
-                        outAttrType[1] = new AttrType(in1[mergeAttrTable1-1].attrType);
-                        outAttrType[2] = new AttrType(AttrType.attrInteger);
-                        outAttrType[3] = new AttrType(in2[mergeAttrTable2-1].attrType);
+                        //outAttrType[0] = new AttrType(in1[joinAttrTable1-1].attrType);
+                        if(isString) {
+                            outAttrType[0] = new AttrType(AttrType.attrString);
+                        }else if(isFloat){
+                            outAttrType[0] = new AttrType(AttrType.attrReal);
+                        }else{
+                            outAttrType[0] = new AttrType(AttrType.attrInteger);
+                        }
+                        outAttrType[1] = new AttrType(AttrType.attrReal);
+                        //outAttrType[2] = new AttrType(in1[mergeAttrTable1-1].attrType);
+                        outAttrType[2] = new AttrType(AttrType.attrReal);
+                        //outAttrType[3] = new AttrType(in2[mergeAttrTable2-1].attrType);
+                        outAttrType[3] = new AttrType(AttrType.attrReal);
                         outAttrType[4] = new AttrType(AttrType.attrInteger);
                         outAttrType[5] = new AttrType(AttrType.attrInteger);
 
@@ -515,17 +325,17 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                 // pLBmin = pLB[k-1];         // TODO: CHANGE IF K +10 is changed. //Done
                 pLBmin = Float.parseFloat(Bounds[k-1][3]);
                 boolean setZero = false;
-                if(pLBmin > Thresh && k < tupleTracker.size()){  // EXIT CONDITION
+                if(pLBmin > Thresh /*&& k < tupleTracker.size()*/){  // EXIT CONDITION
                     continueWhile = false;
                     System.out.println("HIT EXIT CONDITION");
                     System.out.println("TOP K tuples");
                     System.out.printf("%-20s%-8s%-14s%-14s%-8s%-8s\n","Join Attribute","Sum","Merge Attr1","Merge Attr2","Index1","Index2");
                     for(int i = 0;i < k; i++){
                         if(setZero){
-                            findk = Integer.parseInt(Bounds[0][3]);
+                            findk = Float.parseFloat(Bounds[0][3]);
                         }
                         else{
-                            findk = Integer.parseInt(Bounds[i][3]);
+                            findk = Float.parseFloat(Bounds[i][3]);
                         }
                         // print the values
                         for(int j = 0; j < Bounds.length; j++){
@@ -541,7 +351,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                                 String tupleVal2 = Bounds[j][2];
                                 String foundVal1 = "";
                                 String foundVal2 = "";
-                                for(int m = 0; m < pLBCalc.length && !(pLBCalc[m][0].compareTo("0") == 0);m++){
+                                for(int m = 0; m < pLBCalc.length && !(pLBCalc[m][0].compareTo("0.0") == 0);m++){
                                     if(tupleVal1.compareTo(pLBCalc[m][1]) == 0){
                                         foundVal1 = pLBCalc[m][3];
                                     }
@@ -558,10 +368,17 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
 
                                 //insert to output Heap File
                                 if(!outputTableName.equals("")){
-                                    outTuple.setStrFld(1,Bounds[j][0]);
-                                    outTuple.setIntFld(2,Integer.parseInt(Bounds[j][3]));
-                                    outTuple.setIntFld(3,Integer.parseInt(foundVal1));
-                                    outTuple.setIntFld(4,Integer.parseInt(foundVal2));
+                                    //outTuple.setStrFld(1,Bounds[j][0]);
+                                    if(isString) {
+                                        outTuple.setStrFld(1,Bounds[j][0]);
+                                    }else if(isFloat){
+                                        outTuple.setFloFld(1,Float.parseFloat(Bounds[j][0]));
+                                    }else{
+                                        outTuple.setIntFld(1,Integer.parseInt(Bounds[j][0]));
+                                    }
+                                    outTuple.setFloFld(2,Float.parseFloat(Bounds[j][3]));
+                                    outTuple.setFloFld(3,Float.parseFloat(foundVal1));
+                                    outTuple.setFloFld(4,Float.parseFloat(foundVal2));
                                     outTuple.setIntFld(5,Integer.parseInt(tupleVal1));
                                     outTuple.setIntFld(6,Integer.parseInt(tupleVal2));
 
@@ -584,17 +401,47 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
 
                 // set Thresh back to 0 so it can accumulate for the current row
                 Thresh = 0;
+                int gone1 = -1;
+                int gone2 = -1;
                 // for loop to access all the tuples and store them in various arrays.
                 for(int i=0; i < 2; i++) {
+                    if(twoGone && oneGone){
+                        continueWhile = false;
+                        break;
+                    }
+                    if(gone1 == i){
+                        continue;
+                    }
+                    if(gone2 == i){
+                        continue;
+                    }
+
                     Tuple scanTuple = new Tuple();
-                    try {
+                    if (i == 0) {
+                        try {
                         scanTuple.setHdr((short) len_in1, in1, t1_str_sizes);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
+                    }else{
+                        try {
+                            scanTuple.setHdr((short) len_in2, in2, t2_str_sizes);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                     if((temp_tuple = iscan[i].get_next()) == null){
-                        continueWhile = false;
-                        System.out.println("No Top K elements can be found from these two tables\n not sufficient tuples");
+// TODO: Length of files
+                        //continueWhile = false;
+                        if(i==1){
+                            gone1 = i;
+                            oneGone = true;
+                        }else if(i ==0){
+                            gone2 = i;
+                            twoGone = true;
+                        }
+
                         break;
                     }
                     scanTuple.tupleCopy(temp_tuple);
@@ -602,18 +449,61 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                         System.out.println("No Top K elements can be found from these two tables");
                     } else if (scanTuple != null) {
 //Comment line below to surpress output
-                        //scanTuple.print(in1);
+                        if(i == 0) {
+                            //scanTuple.print(in1);
+                        }else {
+                            //scanTuple.print(in2);
+                        }
                         //                      if (!tupleTracker.containsKey(scanTuple.getStrFld(1))) { //TODO : change hardcoded value of 1. First value is not always the join attribute, also it wont be string always
                         int position = mergeAttrTable1;
                         if(i==1){
                             position = mergeAttrTable2;
                         }
-                        tupleTracker.put(scanTuple.getStrFld(1), scanTuple.getIntFld(position));
+
+                        if(i == 0) {
+                            if (isString) {
+                                // add String
+                                tupleTracker.put(scanTuple.getStrFld(joinAttrTable1), scanTuple.getIntFld(position));
+                                pLBCalc[tupleCount][0] = scanTuple.getStrFld(joinAttrTable1);
+                                pUBCalc[tupleCount][0] = scanTuple.getStrFld(joinAttrTable1);
+                                found[tupleCount][0] = scanTuple.getStrFld(joinAttrTable1);
+                            } else if (isFloat) {
+                                // add float
+                                tupleTracker.put(String.valueOf(scanTuple.getFloFld(joinAttrTable1)), scanTuple.getIntFld(position));
+                                pLBCalc[tupleCount][0] = String.valueOf(scanTuple.getFloFld(joinAttrTable1));
+                                pUBCalc[tupleCount][0] = String.valueOf(scanTuple.getFloFld(joinAttrTable1));
+                                found[tupleCount][0] = String.valueOf(scanTuple.getFloFld(joinAttrTable1));
+                            } else {
+                                // add int
+                                tupleTracker.put(String.valueOf(scanTuple.getIntFld(joinAttrTable1)), scanTuple.getIntFld(position));
+                                pLBCalc[tupleCount][0] = String.valueOf(scanTuple.getIntFld(joinAttrTable1));
+                                pUBCalc[tupleCount][0] = String.valueOf(scanTuple.getIntFld(joinAttrTable1));
+                                found[tupleCount][0] = String.valueOf(scanTuple.getIntFld(joinAttrTable1));
+                            }
+                        }else{
+                            if (isString) {
+                                // add String
+                                tupleTracker.put(scanTuple.getStrFld(joinAttrTable2), scanTuple.getIntFld(position));
+                                pLBCalc[tupleCount][0] = scanTuple.getStrFld(joinAttrTable2);
+                                pUBCalc[tupleCount][0] = scanTuple.getStrFld(joinAttrTable2);
+                                found[tupleCount][0] = scanTuple.getStrFld(joinAttrTable2);
+                            } else if (isFloat) {
+                                // add float
+                                tupleTracker.put(String.valueOf(scanTuple.getFloFld(joinAttrTable2)), scanTuple.getIntFld(position));
+                                pLBCalc[tupleCount][0] = String.valueOf(scanTuple.getFloFld(joinAttrTable2));
+                                pUBCalc[tupleCount][0] = String.valueOf(scanTuple.getFloFld(joinAttrTable2));
+                                found[tupleCount][0] = String.valueOf(scanTuple.getFloFld(joinAttrTable2));
+                            } else {
+                                // add int
+                                tupleTracker.put(String.valueOf(scanTuple.getIntFld(joinAttrTable2)), scanTuple.getIntFld(position));
+                                pLBCalc[tupleCount][0] = String.valueOf(scanTuple.getIntFld(joinAttrTable2));
+                                pUBCalc[tupleCount][0] = String.valueOf(scanTuple.getIntFld(joinAttrTable2));
+                                found[tupleCount][0] = String.valueOf(scanTuple.getIntFld(joinAttrTable2));
+                            }
+                        }
                         // update the value of pLBcalc
 
-                        // insert "KEY" or string value in this case
-                        pLBCalc[tupleCount][0] = scanTuple.getStrFld(1);
-                        pUBCalc[tupleCount][0] = scanTuple.getStrFld(1);
+                        // insert "KEY" or join attr value in this case
                         // add "index" unique identifier
                         pLBCalc[tupleCount][1] = String.valueOf(tupleCount);
                         pUBCalc[tupleCount][1] = String.valueOf(tupleCount);
@@ -622,28 +512,18 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                         pUBCalc[tupleCount][2] = String.valueOf(i);
 
                         // if object is partially found it has potential to become fully seen so add its identifier.
-                        found[tupleCount][0] = scanTuple.getStrFld(1);
+// moved up to if, else if, else
+//
                         found[tupleCount][1] = String.valueOf(tupleCount);
                         // insert the Value
                         // always insert 2
-                        pLBCalc[tupleCount][3] = String.valueOf(scanTuple.getIntFld(position));
+                        pLBCalc[tupleCount][3] = String.valueOf((float)scanTuple.getIntFld(position));
 
                         //if(i == 0){
-                        pUBCalc[tupleCount][3] = String.valueOf(scanTuple.getIntFld(position));
+                        pUBCalc[tupleCount][3] = String.valueOf((float)scanTuple.getIntFld(position));
                         // TODO: found does not have which relation
                         found[tupleCount][2] = "1"; // found on relation 1
                         previous = scanTuple.getIntFld(position);
-                        prevKey = scanTuple.getStrFld(1);
-                        /*}else{
-                            pUBCalc[tupleTracker.size() - 1][i+1] = String.valueOf(scanTuple.getIntFld(position));
-                            found[tupleTracker.size() - 1][1] = "01"; //found on relation 2
-                            pUBCalc[tupleTracker.size() - 1][i] = String.valueOf(previous);
-                            for(int l = 0; l < k; l++){
-                                if(prevKey.compareTo(pUBCalc[l][0]) == 0) {
-                                    pUBCalc[l][i+1] = String.valueOf(scanTuple.getIntFld(position));
-                                }
-                            }
-                        }*/
                         // Add all values for the pUB unless found correct values already
                         for(int j = 0; j < arrSize; j++) {
                             if(found[j][2].compareTo("1")== 0){
@@ -651,19 +531,6 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                             }else{
                                 pUBCalc[j][3] = String.valueOf(scanTuple.getIntFld(position));
                             }
-                            /*if(found[j][1].compareTo("10")== 0){
-                                if(i == 0){
-                                    // this relation is found. don't rewrite it
-                                }else{ // if i is 1 set the second relation
-                                    pUBCalc[j][i+1] = String.valueOf(scanTuple.getIntFld(position));
-                                }
-                            }
-                            if(found[j][1].compareTo("01")== 0){
-                                if(i == 0){
-                                    pUBCalc[j][i+1] = String.valueOf(scanTuple.getIntFld(position));
-                                }
-                            }
-                             */
                         } // end for loop
                         tupleCount++;
                         Thresh += scanTuple.getIntFld(position);
@@ -717,18 +584,220 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
                         }*/
                     }
                 }
+ // ATTEMPT TO ADD BOUNDS CALC AT THE END
+                float temp11 = 0;
+                float temp21 = 0;
+                boolean complete = false;
+                boolean notIncluded = false;
+                boolean notIncluded1 = false;
+                boolean notIncluded2 = false;
+                boolean notIncluded3 = false;
+                for(int i = count; i < arrSize && !(pLBCalc[i][0].compareTo("0.0") == 0);i++){
+                    String checkerLB = pLBCalc[i][0];
+                    pLBrow[i%2] = pLBCalc[i][0];
+                    last = 0;
+                    last1 = 0;
+                    for(int j = 0; j < Bounds.length ; j++){
+                        if(count > 0 && Bounds[j][0].compareTo("0.0") == 0){
+                            notIncluded = contains(Bounds,pLBrow[0]);
+                            notIncluded1 = contains(Bounds,pLBrow[1]);
+                            notIncluded2 = contains2(Bounds,pLBrow[0],pLBCalc[i][1]);
+                            //notIncluded3 = contains2(Bounds,pLBrow[1],pLBCalc[i][1]);
+                            // add element That have new Join attr
+                            if(!notIncluded){
+                                int check = 0;
+                                while(!(pLBCalc[check][0].compareTo("0.0") == 0)){
+                                    if((pLBCalc[check][0].compareTo(pLBrow[0]) == 0)){
+                                        Bounds[count][0] = pLBCalc[check][0];
+                                        if(pLBCalc[check][2].compareTo("0") == 0) {
+                                            Bounds[count][1] = pLBCalc[check][1];
+                                            Bounds[count][2] = "$";
+                                        }else{
+                                            Bounds[count][2] = pLBCalc[check][1];
+                                            Bounds[count][1] = "$";
+                                        }
+                                        Bounds[count][3] = pLBCalc[check][3];
+                                        Bounds[count][4] = pUBCalc[check][3];
+                                        count++;
+                                    }
+                                    check++;
+                                }
+
+                            }
+                            // add element that has new join attr
+                            if(!notIncluded1){
+                                int check = 0;
+                                while(!(pLBCalc[check][0].compareTo("0.0") == 0)){
+                                    if((pLBCalc[check][0].compareTo(pLBrow[1]) == 0)){
+                                        Bounds[count][0] = pLBCalc[check][0];
+                                        if(pLBCalc[check][2].compareTo("0") == 0) {
+                                            Bounds[count][1] = pLBCalc[check][1];
+                                            Bounds[count][2] = "$";
+                                        }else{
+                                            Bounds[count][2] = pLBCalc[check][1];
+                                            Bounds[count][1] = "$";
+                                        }
+                                        Bounds[count][3] = pLBCalc[check][3];
+                                        Bounds[count][4] = pUBCalc[check][3];
+                                        count++;
+                                    }
+                                    check++;
+                                }
+                            }
+                            break;
+                        }
+                        String checkerB = Bounds[j][0];
+                        if(checkerB.compareTo("2") == 0){
+                            System.out.print("");
+                        }
+                        // if same string
+                        if(checkerLB.compareTo(checkerB) == 0){
+                            rel11 = false;
+                            rel22 = false;
+                            // found in Bounds seen 2+ The String is in bounds at least once.
+                            if(pLBCalc[i][2].compareTo("0") == 0 ){
+                                rel11 = true;
+                            }
+                            if(pLBCalc[i][2].compareTo("1") == 0){
+                                // if  i is in second relation in other relation
+                                rel22 = true;
+                            }
+
+                            if(rel11){ // if new String that has been seen before is in relation 1
+                                for(int l = last; l < arrSize && !(pLBCalc[l][0].compareTo("0.0") == 0); l++){
+                                    if(pLBCalc[l][2].compareTo("1") == 0 && pLBCalc[l][0].compareTo(Bounds[j][0]) == 0){
+                                        Bounds[count][0] = pLBCalc[l][0];
+
+                                            Bounds[count][1] = pLBCalc[i][1];
+                                            Bounds[count][2] = pLBCalc[l][1];
+                                            Bounds[count][3] = String.valueOf(Float.parseFloat(pLBCalc[i][3]) + Float.parseFloat(pLBCalc[l][3]));
+                                            Bounds[count][4] = String.valueOf(Float.parseFloat(pUBCalc[i][3]) + Float.parseFloat(pUBCalc[l][3]));
+                                            count++;
+                                        complete = true;
+                                        rel11 = false;
+                                        boolean more = contains3(Bounds,pLBCalc[l][0],l+1,count-2);
+                                        last = l+1;
+                                            break;
+                                    }
+                                }
+                            }
+                            if(rel22){
+                                for(int l = last1; l < arrSize && !(pLBCalc[l][0].compareTo("0.0") == 0); l++){
+                                    if(pLBCalc[l][2].compareTo("0") == 0 && pLBCalc[l][0].compareTo(Bounds[j][0]) == 0 && !containsMatch(Bounds,pLBCalc[l][1],pLBCalc[i][1])){
+                                        Bounds[count][0] = pLBCalc[l][0];
+
+                                        Bounds[count][2] = pLBCalc[i][1];
+                                        Bounds[count][1] = pLBCalc[l][1];
+                                        Bounds[count][3] = String.valueOf(Float.parseFloat(pLBCalc[i][3]) + Float.parseFloat(pLBCalc[l][3]));
+                                        Bounds[count][4] = String.valueOf(Float.parseFloat(pUBCalc[i][3]) + Float.parseFloat(pUBCalc[l][3]));
+                                        count++;
+
+                                        complete = true;
+                                        rel11 = false;
+                                        boolean more = contains3(Bounds,pLBCalc[l][0],l+1,count-2);
+                                        last1 = l+1;
+
+                                        break;
+
+                                    }
+                                }
+                            }
+                        }else if(checkerLB.compareTo(pLBCalc[i+1][0]) == 0){
+                            // next value is the same as current seen 2+
+                            // need to add pLB to Bounds, then check all of bounds for same String
+                            if(containsMatch(Bounds,pLBCalc[i][1],pLBCalc[i+1][1])){
+                                break;
+                            }
+                            Bounds[count][0] = pLBCalc[i][0];
+                            if(Integer.parseInt(pLBCalc[i][1])%2 == 0) {
+                                Bounds[count][1] = pLBCalc[i][1];
+                                Bounds[count][2] = pLBCalc[i + 1][1];
+                            }else if(Integer.parseInt(pLBCalc[i][1])%2 == 1){
+                                Bounds[count][2] = pLBCalc[i][1];
+                                Bounds[count][1] = pLBCalc[i + 1][1];
+                            }
+                            Bounds[count][3] = String.valueOf(Float.parseFloat(pLBCalc[i][3]) + Float.parseFloat(pLBCalc[i+1][3]));
+                            Bounds[count][4] = String.valueOf(Float.parseFloat(pUBCalc[i][3]) + Float.parseFloat(pUBCalc[i+1][3]));
+                            count++;
+                            added[count][0] = pLBCalc[i][1];
+                            added[count][1] = pLBCalc[i+1][1];;
+                            // add both individually
+                            Bounds[count][0] = pLBCalc[i][0];
+                            Bounds[count+1][0] = pLBCalc[i+1][0];
+                            if(Integer.parseInt(pLBCalc[i][1])%2 == 0) {
+                                Bounds[count][1] = pLBCalc[i][1];
+                                Bounds[count+1][1] = "$";
+                                Bounds[count][2] = "$";
+                                Bounds[count+1][2] = pLBCalc[i+1][1];
+                            }else if(Integer.parseInt(pLBCalc[i][1])%2 == 1){
+                                Bounds[count][2] = pLBCalc[i][1];
+                                Bounds[count+1][2] = "$";
+                                Bounds[count][1] = "$";
+                                Bounds[count+1][1] = pLBCalc[i+1][1];
+                            }
+                            Bounds[count][3] = pLBCalc[i][3];
+                            Bounds[count + 1][3] = pLBCalc[i+1][3];
+                            Bounds[count][4] = String.valueOf(Float.parseFloat(pUBCalc[i][3]) + Float.parseFloat(pUBCalc[i+1][3]));
+                            Bounds[count+1][4] = String.valueOf(Float.parseFloat(pUBCalc[i][3]) + Float.parseFloat(pUBCalc[i+1][3]));
+                            count+=2;
+
+                            break;
+
+
+                        }else if(Bounds[0][0].compareTo("0.0") == 0){ //empty first add
+                            // not in Bounds Partially seen
+                            Bounds[0][0] = pLBCalc[i][0];
+                            if(pLBCalc[i][2].compareTo("0") == 0 ){
+                                Bounds[0][1] = pLBCalc[i][1];
+                                Bounds[0][2] = "$";
+                            }else{
+                                Bounds[0][1] = "$";
+                                Bounds[0][2] = pLBCalc[i][1];
+                            }
+                            Bounds[0][3] = pLBCalc[i][3];
+                            Bounds[0][4] = pUBCalc[i][3];
+                            count++;
+                            // add second item
+                            Bounds[count][0] = pLBCalc[i+1][0];
+                            if(pLBCalc[i+1][2].compareTo("0") == 0 ){
+                                Bounds[count][1] = pLBCalc[i][1+1];
+                                Bounds[count][2] = "$";
+                            }else{
+                                Bounds[count][1] = "$";
+                                Bounds[count][2] = pLBCalc[i+1][1];
+                            }
+                            Bounds[count][3] = pLBCalc[i+1][3];
+                            Bounds[count][4] = pUBCalc[i+1][3];
+                            count++;
+                            break;
+                        }else if(true){
+
+                        }
+                        // NEW !!!!!!!!!!!!!!!!!
+                        notIncluded2 = contains2(Bounds,pLBCalc[i][0],pLBCalc[i][1]);
+                        // Join attr is not new but index of the join attr is new
+                        if(!notIncluded2){
+                            int check = 0;
+                            Bounds[count][0] = pLBCalc[i][0];
+                            if(pLBCalc[i][2].compareTo("0") == 0) {
+                                Bounds[count][1] = pLBCalc[i][1];
+                                Bounds[count][2] = "$";
+                            }else{
+                                Bounds[count][2] = pLBCalc[i][1];
+                                Bounds[count][1] = "$";
+                            }
+                            Bounds[count][3] = pLBCalc[i][3];
+                            Bounds[count][4] = pUBCalc[i][3];
+                            count++;
+                            //}
+                            check++;
+                            //}
+                        }
+                        //END NEW !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    }
+                }
+ // END ATTEMPT
             } // end while ContinueTrue
-            // this was from TopK HASH
-// NOT SURE IF THIS IS NEEDED
-//            if (tupleTracker.size()==k) {
-//                //first k in the list are the top k elements
-//                printResult(tupleTracker);
-//            }
-// NOT SURE IF ELSE IF IS NEEDED
-//            else if (tupleTracker.size()>k){
-//                //vet all elements in hashmap ie find A+B/2 for all top k elements
-//                System.out.println("Here now");
-//            }
 
         }catch(Exception e){    // end try
             e.printStackTrace();
@@ -768,7 +837,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
 
     public static boolean contains(String[][] arr, String item) {
 
-        for (int count = 0; !(arr[count][0].compareTo("0") == 0) ;count++) {
+        for (int count = 0; !(arr[count][0].compareTo("0.0") == 0) ;count++) {
             if (item.compareTo(arr[count][0]) == 0) {
                 return true;
             }
@@ -778,7 +847,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
     }
     public static boolean containsMatch(String[][] arr, String item, String item2) {
 
-        for (int count = 0; !(arr[count][0].compareTo("0") == 0) ;count++) {
+        for (int count = 0; !(arr[count][0].compareTo("0.0") == 0) ;count++) {
             if (item.compareTo(arr[count][1]) == 0) {
                 if(item2.compareTo(arr[count][2]) == 0) {
                     return true;
@@ -791,7 +860,7 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
 
     public static boolean contains2(String[][] arr, String item, String item1) {
 
-        for (int count = 0; !(arr[count][0].compareTo("0") == 0) ;count++) {
+        for (int count = 0; !(arr[count][0].compareTo("0.0") == 0) ;count++) {
 
             if (item.compareTo(arr[count][0]) == 0) {
                 if(item1.compareTo(arr[count][1]) == 0){
@@ -804,5 +873,95 @@ public class TopK_NRAJoin extends Iterator implements GlobalConst {
         }
         return false;
     }
+
+    public static boolean contains3(String[][] arr,String item, int count, int last){
+        for(int count1 = count; count1 < last; count1++){
+            if(arr[count1][0].compareTo(item) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void createUnclusteredBTreeIndex(String tableName, int attrNo) {
+        String indexFileName = tableName+"UNCLUST"+"BTREE"+attrNo;
+        // if already index present, print index already present else create
+
+        TableMetadata tm = tableMetadataMap.get(tableName);
+        // Check for TABLE_NAME+CLUST/UNCLUST+BTREE/HASH+FIELDNO
+        if(!tm.getIndexNameList().contains(indexFileName)) {
+            Heapfile hf = null;
+            try {
+                hf = new Heapfile(tableName);
+            } catch (Exception e) {
+            }
+
+            Scan scan = null;
+
+            try {
+                scan = new Scan(hf);
+            } catch (Exception e) {
+                //status = FAIL;
+                e.printStackTrace();
+                Runtime.getRuntime().exit(1);
+            }
+
+            AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+            short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+
+            Tuple temp = null;
+            Tuple t = new Tuple();
+            try {
+                t.setHdr((short) attrType.length, attrType, attrSize);
+            } catch (Exception e) {
+                System.err.println("*** error in Tuple.setHdr() ***");
+                e.printStackTrace();
+            }
+            RID rid = new RID();
+            BTreeFile btf = null;
+            try {
+                //Convention Name : TABLE_NAME+CLUST/UNCLUST+BTREE/HASH+FIELDNO
+                btf = new BTreeFile(indexFileName, attrType[attrNo-1].attrType, REC_LEN1, 1/*delete*/);
+                KeyClass key = null;
+                while ((temp = scan.getNext(rid)) != null) {
+                    t.tupleCopy(temp);
+                    if (attrType[attrNo-1].attrType == AttrType.attrInteger) {
+                        int intKey = t.getIntFld(attrNo);
+                        key = new IntegerKey(intKey);
+                    } else if (attrType[attrNo-1].attrType == AttrType.attrString) {
+                        String strKey = t.getStrFld(attrNo);
+                        key = new StringKey(strKey);
+                    }
+                    btf.insert(key, rid);
+                }
+            } catch (Exception e) {
+                System.err.println("*** BTree File error ***");
+                e.printStackTrace();
+                Runtime.getRuntime().exit(1);
+            } finally {
+                scan.closescan();
+            }
+            try {
+                btf.close();
+            } catch (Exception e) {
+                System.err.println("*** BTree File closing error ***");
+                e.printStackTrace();
+                Runtime.getRuntime().exit(1);
+            }
+
+            updateIndexEntryToTableMetadata(tableName, indexFileName);
+        } else {
+            System.out.println("BTree index already exist for table "+tableName+ " - "+attrNo);
+        }
+
+    }
+
+    private void updateIndexEntryToTableMetadata(String tableName, String indexFileName) {
+        TableMetadata tm = tableMetadataMap.get(tableName);
+        if(!tm.getIndexNameList().contains(indexFileName)) {
+            tm.getIndexNameList().add(indexFileName);
+        }
+    }
+
 }
 
