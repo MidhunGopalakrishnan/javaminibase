@@ -28,6 +28,7 @@ public class TopK_HashJoin extends Iterator implements GlobalConst {
             int n_pages,String outputTableName, HashMap<String, TableMetadata> tableMetadataMap
     ) {
         if(outputTableName.equals("") || tableMetadataMap.get(outputTableName)==null) {
+
             int joinAttrTable1 = joinAttr1.offset;
             int mergeAttrTable1 = mergeAttr1.offset;
             int joinAttrTable2 = joinAttr2.offset;
