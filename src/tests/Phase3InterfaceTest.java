@@ -936,45 +936,51 @@ class Phase3InterfaceTestDriver extends TestDriver
             materialize = true;
             outTableName = commandList[11];
         }
-        AttrType[] attrType1 = tableMetadataMap.get(tableName1).attrType;
-        short[] attrSize1 = tableMetadataMap.get(tableName1).attrSize;
+        //validate if both the table names exists. Else quit
+        if(tableMetadataMap.get(tableName1)!=null && tableMetadataMap.get(tableName2)!=null) {
 
-        AttrType[] attrType2 = tableMetadataMap.get(tableName2).attrType;
-        short[] attrSize2 = tableMetadataMap.get(tableName2).attrSize;
+            AttrType[] attrType1 = tableMetadataMap.get(tableName1).attrType;
+            short[] attrSize1 = tableMetadataMap.get(tableName1).attrSize;
 
-        if(tableMetadataMap.get(outTableName)==null) {
+            AttrType[] attrType2 = tableMetadataMap.get(tableName2).attrType;
+            short[] attrSize2 = tableMetadataMap.get(tableName2).attrSize;
 
-                    if (joinType.equals("HASH")) {
-                        try {
+            if (tableMetadataMap.get(outTableName) == null) {
 
-                            TopK_HashJoin topk = new TopK_HashJoin(
-                                    attrType1, attrType1.length, attrSize1, new FldSpec(new RelSpec(RelSpec.outer), joinAttr1),
-                                    new FldSpec(new RelSpec(RelSpec.outer), mergeAttr1),
-                                    attrType2, attrType2.length, attrSize2, new FldSpec(new RelSpec(RelSpec.outer), joinAttr2),
-                                    new FldSpec(new RelSpec(RelSpec.outer), mergeAttr2),
-                                    tableName1,
-                                    tableName2,
-                                    k,
-                                    num_pages,outTableName,tableMetadataMap
-                            );
-                        }catch (Exception e) {
-                            e.printStackTrace();
-                            Runtime.getRuntime().exit(1);
-                        }
+                if (joinType.equals("HASH")) {
+                    try {
 
-                    } else if (joinType.equals("NRA")) {
-                        TopK_NRAJoin topk = new  TopK_NRAJoin(
-                                attrType1, attrType1.length, attrSize1,
-                                new FldSpec(new RelSpec(RelSpec.outer), joinAttr1), new FldSpec(new RelSpec(RelSpec.outer), mergeAttr1),
-                                attrType2, attrType2.length, attrSize2,
-                                new FldSpec(new RelSpec(RelSpec.outer), joinAttr2),  new FldSpec(new RelSpec(RelSpec.outer), mergeAttr2),
+                        TopK_HashJoin topk = new TopK_HashJoin(
+                                attrType1, attrType1.length, attrSize1, new FldSpec(new RelSpec(RelSpec.outer), joinAttr1),
+                                new FldSpec(new RelSpec(RelSpec.outer), mergeAttr1),
+                                attrType2, attrType2.length, attrSize2, new FldSpec(new RelSpec(RelSpec.outer), joinAttr2),
+                                new FldSpec(new RelSpec(RelSpec.outer), mergeAttr2),
                                 tableName1,
                                 tableName2,
                                 k,
-                                num_pages,outTableName,tableMetadataMap);
+                                num_pages, outTableName, tableMetadataMap
+                        );
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Runtime.getRuntime().exit(1);
                     }
+
+                } else if (joinType.equals("NRA")) {
+                    TopK_NRAJoin topk = new TopK_NRAJoin(
+                            attrType1, attrType1.length, attrSize1,
+                            new FldSpec(new RelSpec(RelSpec.outer), joinAttr1), new FldSpec(new RelSpec(RelSpec.outer), mergeAttr1),
+                            attrType2, attrType2.length, attrSize2,
+                            new FldSpec(new RelSpec(RelSpec.outer), joinAttr2), new FldSpec(new RelSpec(RelSpec.outer), mergeAttr2),
+                            tableName1,
+                            tableName2,
+                            k,
+                            num_pages, outTableName, tableMetadataMap);
+                }
+            } else {
+                System.out.println("OUTTABLENAME specified already exists. Please specify a new output table name");
+            }
         } else {
-            System.out.println("OUTTABLENAME specified already exists. Please specify a new output table name");
+            System.out.println("One or more of the table names specified in the command does not exist ");
         }
 
     }
