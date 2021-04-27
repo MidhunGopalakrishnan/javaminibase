@@ -702,7 +702,7 @@ class Phase3InterfaceTestDriver extends TestDriver
                         attrSize2,
                         n_pages,
                         am1,
-                        outerTableName,
+                        innerTableName,
                         expr,
                         scanExpr,
                         projlist2,
