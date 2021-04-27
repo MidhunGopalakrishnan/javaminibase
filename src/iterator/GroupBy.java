@@ -2,32 +2,21 @@ package iterator;
 
 import btree.BTreeFile;
 import btree.KeyClass;
-import bufmgr.PageNotReadException;
 import global.*;
 import hash.HashFile;
+import hash.IntegerKey;
 import hash.StringKey;
 import heap.*;
-import index.IndexException;
 import index.IndexScan;
 
-import java.beans.Expression;
 import java.io.IOException;
 import java.util.ArrayList;
 
 public class GroupBy extends Iterator implements GlobalConst {
-    private Iterator    outer;
-    private int         n_buf_pgs;          // # of buffer pages available.
-    private boolean     done,               // Is the join complete
-            get_from_outer;     // if TRUE, a tuple is got from outer
-    private Tuple       outer_tuple, inner_tuple;
-    private Scan        inner;
-
-
     private int         tuple_size;
     private FldSpec     _perm_mat[];
     private int         _nOutFlds, count;
-    private Tuple       _Jtuple, cur, ret, t;
-    private String      prev;
+    private Tuple       _Jtuple, cur, ret, t, prev;
 
     private AttrType    _in1[];
     public  int         n_cols;
@@ -40,7 +29,6 @@ public class GroupBy extends Iterator implements GlobalConst {
     private FldSpec[]   _agg_list;
     private AggType     _agg_type;
     private int         _n_out_fields;
-    private Sort        sort;
     private Heapfile    temp, temp1;
     boolean             heapFileDone;
     private Scan        tempScan;
@@ -50,9 +38,10 @@ public class GroupBy extends Iterator implements GlobalConst {
     private FileScan    _am;
 
     private BlockNestedLoopsSky _s;
-    private ArrayList<String>   outputs;
+    private ArrayList<String>   outputsStr;
+    private ArrayList<Integer>  outputsInt;
 
-    private ArrayList<Tuple>    skyline_mainm, rets;
+    private ArrayList<Tuple>    skylines, rets;
     private ArrayList<Integer>  mainm_insert_time, tempfile_insert_time;
     private int                 max_tuples_mainm;
     private int                 temp_file_number;
@@ -60,8 +49,6 @@ public class GroupBy extends Iterator implements GlobalConst {
     private Iterator            file_iterator;
     private RID                 rid;
     boolean                     file_read;
-
-    private TupleOrder  order;
 
     private int         _n_pages;
     private byte[][]    bufs;
@@ -132,14 +119,19 @@ public class GroupBy extends Iterator implements GlobalConst {
             }
             RID rid = new RID();
             for (int i = 0; i < 1; i++) {
-                btf = new BTreeFile("BTreeIndexFile" + 1, AttrType.attrString, 32, 1/*delete*/);
+                btf = new BTreeFile("BTreeIndexFile" + 1, _in1[_group_by_attr.offset-1].attrType, 32, 1/*delete*/);
                 BTreeFileList[i] = btf;
             }
             KeyClass key;
             while ((temp = scan.getNext(rid)) != null) {
                 t.tupleCopy(temp);
-                String strKey = t.getStrFld(1);
-                key = new btree.StringKey(strKey);
+                if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                    String bKey = t.getStrFld(_group_by_attr.offset);
+                    key = new btree.StringKey(bKey);
+                } else {
+                    int bKey = t.getIntFld(_group_by_attr.offset);
+                    key = new btree.IntegerKey(bKey);
+                }
                 btf.insert(key,rid);
             }
             CondExpr[] expr = new CondExpr[2];
@@ -227,10 +219,11 @@ public class GroupBy extends Iterator implements GlobalConst {
         float utilization = 0.75f;
 
         try {
-            _hash_file = new HashFile("HashIndex" + pref_list[0], AttrType.attrString, 50, 1, utilization);
+            _hash_file = new HashFile("HashIndex" + pref_list[0], _in1[group_by_attr.offset-1].attrType, 50, 1, utilization);
             rid = new RID();
             PageId deletepid;
-            String key = null;
+            String keyStr = null;
+            int keyInt = 0;
             Tuple temp = null;
 
             try {
@@ -243,21 +236,32 @@ public class GroupBy extends Iterator implements GlobalConst {
             t = new Tuple(temp.getLength());
             t.setHdr((short) n_cols, _in1, _t1_str_sizescopy);
 
-            outputs = new ArrayList<String>();
+            outputsStr = new ArrayList<String>();
+            outputsInt = new ArrayList<Integer>();
             while (temp != null) {
                 t.tupleCopy(temp);
 
                 try {
-                    key = t.getStrFld(_group_by_attr.offset);
-                    if(!outputs.contains(key))
-                        outputs.add(key);
+                    if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                        keyStr = t.getStrFld(_group_by_attr.offset);
+                        if (!outputsStr.contains(keyStr))
+                            outputsStr.add(keyStr);
+                    } else {
+                        keyInt = t.getIntFld(_group_by_attr.offset);
+                        if (!outputsInt.contains(keyInt))
+                            outputsInt.add(keyInt);
+                    }
                 } catch (Exception e) {
                     //status = FAIL;
                     e.printStackTrace();
                 }
 
                 try {
-                    _hash_file.insert(new StringKey(key), rid);
+                    if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                        _hash_file.insert(new StringKey(keyStr), rid);
+                    } else {
+                        _hash_file.insert(new IntegerKey(keyInt), rid);
+                    }
                 } catch (Exception e) {
                     //status = FAIL;
                     e.printStackTrace();
@@ -309,21 +313,36 @@ public class GroupBy extends Iterator implements GlobalConst {
         float[] output = new float[_nOutFlds];
         float[] sum = new float[_nOutFlds];
         cur = new Tuple();
-        prev = new String();
+        prev = new Tuple();
         String outputStr = null;
+        int outputInt = 0;
+        int count = 0;
+        int sCount = 0;
 
         int out_flds = _nOutFlds+1;
         AttrType[] attrOutput = new AttrType[out_flds];
-        attrOutput[0] = new AttrType(AttrType.attrString);
+        if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+            attrOutput[0] = new AttrType(AttrType.attrString);
+        } else {
+            attrOutput[0] = new AttrType(AttrType.attrInteger);
+        }
         for(int i = 1; i < out_flds; i++) {
             attrOutput[i] = new AttrType(AttrType.attrReal);
         }
 
         if (_isHash) {
+            count = 0;
             first = true;
-            if(outputs.isEmpty()) return null;
-            outputStr = outputs.get(0);
-            ArrayList <RID> searchResults = _hash_file.search(new StringKey(outputs.get(0)));
+            if(outputsStr.isEmpty() && outputsInt.isEmpty()) return null;
+
+            ArrayList <RID> searchResults = null;
+            if(_isHash && _in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                outputStr = outputsStr.get(0);
+                searchResults = _hash_file.search(new StringKey(outputsStr.get(0)));
+            } else {
+                outputInt = outputsInt.get(0);
+                searchResults = _hash_file.search(new IntegerKey(outputsInt.get(0)));
+            }
 
             for(int i=0; i<searchResults.size(); i++) {
                 rid = searchResults.get(i);
@@ -334,6 +353,10 @@ public class GroupBy extends Iterator implements GlobalConst {
                     if (first) {
                         for (int k = 0; k < _nOutFlds; k++) {
                             output[k] = cur.getIntFld(_agg_list[k].offset);
+                            if (_agg_type.aggType == AggType.aggAvg) {
+                                sum[i] = output[i];
+                            }
+                            count++;
                         }
                         first = false;
                     }
@@ -350,14 +373,16 @@ public class GroupBy extends Iterator implements GlobalConst {
                             break;
                         case (AggType.aggAvg):
                             sum[j] = sum[j] + (float) cur.getIntFld(_agg_list[j].offset);
-                            output[j] = sum[j] / (i + 1);
+                            output[j] = sum[j] / count;
+                            count++;
                             break;
                     }
 
                 }
             }
 
-            outputs.remove(0);
+            if(!outputsStr.isEmpty()) { outputsStr.remove(0); }
+            if(!outputsInt.isEmpty()) { outputsInt.remove(0); }
         } else {
 
             if (first) {
@@ -366,35 +391,44 @@ public class GroupBy extends Iterator implements GlobalConst {
                 rets = new ArrayList<Tuple>();
 
                 cur = _iscan.get_next();
-                prev = cur.getStrFld(1);
 
-                for (int i = 0; i < _agg_list.length; i++) {
-                    output[i] = cur.getIntFld(_agg_list[i].offset);
-                    if (_agg_type.aggType == AggType.aggAvg) {
-                        sum[i] = output[i];
-                    }
+                if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                    outputStr = cur.getStrFld(_group_by_attr.offset);
+                } else {
+                    outputInt = cur.getIntFld(_group_by_attr.offset);
                 }
 
                 cur = _iscan.get_next();
+                count++;
+                Boolean check = false;
 
                 while(cur != null) {
-                    if(prev.compareTo(cur.getStrFld(_group_by_attr.offset)) != 0) {
+                    if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString && outputStr.compareTo(cur.getStrFld(_group_by_attr.offset)) != 0) {
+                        check = true;
+                    }
+                    if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrInteger && outputInt != cur.getIntFld(_group_by_attr.offset)) {
+                        check = true;
+                    }
+                    if(check) {
                         t = new Tuple();
                         t.setHdr((short) (output.length+1), attrOutput, _t1_str_sizescopy);
-                        for(int i=0; i<=output.length; i++) {
-                            if(i == 0) {
-                                t.setStrFld(i+1, prev);
-                            } else {
-                                t.setFloFld(i+1, output[i-1]);
-                            }
+                        if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                            t.setStrFld(1, outputStr);
+                        } else {
+                            t.setIntFld(1, outputInt);
+                        }
+                        for(int i=0; i<output.length; i++) {
+                            t.setFloFld(i+2, output[i]);
                         }
                         rets.add(t);
+                        count = 0;
                         for (int i = 0; i < _agg_list.length; i++) {
                             output[i] = cur.getIntFld(_agg_list[i].offset);
                             if (_agg_type.aggType == AggType.aggAvg) {
                                 sum[i] = output[i];
                             }
                         }
+                        check = false;
                     }
                     for (int i = 0; i < _nOutFlds; i++) {
                         switch (_agg_type.aggType) {
@@ -409,25 +443,31 @@ public class GroupBy extends Iterator implements GlobalConst {
                                 }
                                 break;
                             case (AggType.aggAvg):
+                                count++;
                                 sum[i] = sum[i] + (float) cur.getIntFld(_agg_list[i].offset);
-                                output[i] = sum[i] / (i + 2);
+                                output[i] = sum[i] / count;
                                 break;
                         }
 
                     }
 
-                    prev = cur.getStrFld(1);
+                    if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                        outputStr = cur.getStrFld(_group_by_attr.offset);
+                    } else {
+                        outputInt = cur.getIntFld(_group_by_attr.offset);
+                    }
                     cur = _iscan.get_next();
 
                     if(cur == null) {
                         t = new Tuple();
                         t.setHdr((short) (output.length+1), attrOutput, _t1_str_sizescopy);
-                        for(int i=0; i<=output.length; i++) {
-                            if(i == 0) {
-                                t.setStrFld(i+1, prev);
-                            } else {
-                                t.setFloFld(i+1, output[i-1]);
-                            }
+                        if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                            t.setStrFld(1, outputStr);
+                        } else {
+                            t.setIntFld(1, outputInt);
+                        }
+                        for(int i=0; i<output.length; i++) {
+                            t.setFloFld(i+2, output[i]);
                         }
                         rets.add(t);
                     }
@@ -437,20 +477,30 @@ public class GroupBy extends Iterator implements GlobalConst {
             if(rets.isEmpty()) { return null; }
             t = rets.get(0);
 
-            outputStr = t.getStrFld(1);
-            output = new float[out_flds-1];
-            for(int i=0; i<out_flds-1; i++) {
-                output[i] = t.getFloFld(i+2);
-            }
-
             rets.remove(0);
         }
 
         ret = new Tuple();
         ret.setHdr((short) out_flds, attrOutput, _t1_str_sizescopy);
-        ret.setStrFld(1, outputStr);
-        for(int i=0; i<output.length; i++) {
-            ret.setFloFld(i+2, output[i]);
+        if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+            if(_isHash) {
+                ret.setStrFld(1, outputStr);
+            } else {
+                ret.setStrFld(1, t.getStrFld(1));
+            }
+        } else {
+            if(_isHash) {
+                ret.setIntFld(1, outputInt);
+            } else {
+                ret.setIntFld(1, t.getIntFld(1));
+            }
+        }
+        for(int i=0; i<_agg_list.length; i++) {
+            if(_isHash) {
+                ret.setFloFld(i + 2, output[i]);
+            } else {
+                ret.setFloFld(i + 2, t.getFloFld(i + 2));
+            }
         }
 
         return ret;
@@ -476,13 +526,15 @@ public class GroupBy extends Iterator implements GlobalConst {
             LowMemException,
             GroupByException,
             Exception {
+        String outputStr = null;
+        int outputInt = 0;
         int[] pref_list = new int[_agg_list.length];
         for(int i = 0; i < _agg_list.length; i++) {
             pref_list[i] = _agg_list[i].offset-1;
         }
 
-        if(skyline_mainm == null && rets == null) {
-            skyline_mainm = new ArrayList<Tuple>();
+        if(skylines == null && rets == null) {
+            skylines = new ArrayList<Tuple>();
             rets = new ArrayList<Tuple>();
         }
 
@@ -490,10 +542,15 @@ public class GroupBy extends Iterator implements GlobalConst {
             if (first = true) {
                 first = false;
 
-                while (!outputs.isEmpty()) {
+                while (!outputsStr.isEmpty() || !outputsInt.isEmpty()) {
                     _skyline = new Heapfile("sky");
+                    ArrayList<RID> searchResults = null;
 
-                    ArrayList<RID> searchResults = _hash_file.search(new StringKey(outputs.get(0)));
+                    if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                        searchResults = _hash_file.search(new StringKey(outputsStr.get(0)));
+                    } else {
+                        searchResults = _hash_file.search(new IntegerKey(outputsInt.get(0)));
+                    }
 
                     for (int i = 0; i < searchResults.size(); i++) {
                         rid = searchResults.get(i);
@@ -511,14 +568,18 @@ public class GroupBy extends Iterator implements GlobalConst {
                             "sky", pref_list, pref_list.length, _n_pages);
 
                     Tuple t1 = new Tuple();
-                    //t1 = _s.get_next();
 
                     while ((t1 = _s.get_next()) != null) {
-                        skyline_mainm.add(t1);
-                        //t1 = _s.get_next();
+                        skylines.add(t1);
                     }
 
-                    outputs.remove(0);
+                    if(!outputsStr.isEmpty()) { outputsStr.remove(0); }
+                    if(!outputsInt.isEmpty()) { outputsInt.remove(0); }
+
+                    _am.close();
+                    _s.close();
+                    _skyline.deleteFile();
+
                 }
 
                 _am.close();
@@ -527,15 +588,33 @@ public class GroupBy extends Iterator implements GlobalConst {
 
         } else {
             if(first) {
+                Boolean check = false;
                 _skyline = new Heapfile("sky");
 
                 cur = _iscan.get_next();
 
                 while(cur != null) {
-                    prev = cur.getStrFld(1);
-                    while (cur != null && prev.compareTo(cur.getStrFld(1)) == 0) {
+                    if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                        outputStr = cur.getStrFld(_group_by_attr.offset);
+                    } else {
+                        outputInt = cur.getIntFld(_group_by_attr.offset);
+                    }
+                    if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString && outputStr.compareTo(cur.getStrFld(_group_by_attr.offset)) == 0) {
+                        check = true;
+                    }
+                    if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrInteger && outputInt == cur.getIntFld(_group_by_attr.offset)) {
+                        check = true;
+                    }
+                    while (check) {
                         rid = _skyline.insertRecord(cur.returnTupleByteArray());
                         cur = _iscan.get_next();
+                        if(cur == null) { break; }
+                        if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString && outputStr.compareTo(cur.getStrFld(_group_by_attr.offset)) != 0) {
+                            check = false;
+                        }
+                        if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrInteger && outputInt != cur.getIntFld(_group_by_attr.offset)) {
+                            check = false;
+                        }
                     }
 
                     _am = null;
@@ -546,41 +625,66 @@ public class GroupBy extends Iterator implements GlobalConst {
                             "sky", pref_list, pref_list.length, _n_pages);
 
                     Tuple t1 = new Tuple();
-                    //t1 = _s.get_next();
 
                     while ((t1 = _s.get_next()) != null) {
-                        skyline_mainm.add(t1);
-                        //t1 = _s.get_next();
+                        skylines.add(t1);
                     }
 
                     cur = _iscan.get_next();
+
+                    _skyline.deleteFile();
+                    _skyline = new Heapfile("sky");
                 }
             }
         }
 
-        String outputStr = null;
-        if (!skyline_mainm.isEmpty()) {
-            outputStr = skyline_mainm.get(0).getStrFld(1);
+        if (!skylines.isEmpty()) {
+            if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                outputStr = skylines.get(0).getStrFld(_group_by_attr.offset);
+            } else {
+                outputInt = skylines.get(0).getIntFld(_group_by_attr.offset);
+            }
         }
         String str = null;
+        int intr = 0;
+        Boolean check = false;
 
-        while (!skyline_mainm.isEmpty()) {
-            str = skyline_mainm.get(0).getStrFld(1);
-            if (outputStr.compareTo(str) == 0) {
+        while (!skylines.isEmpty()) {
+            if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                str = skylines.get(0).getStrFld(_group_by_attr.offset);
+                if(outputStr.compareTo(str) == 0) {
+                    check = true;
+                }
+            } else {
+                intr = skylines.get(0).getIntFld(_group_by_attr.offset);
+                if(outputInt == intr) {
+                    check = true;
+                }
+            }
+
+            if (check) {
                 Tuple returnTuple = new Tuple();
                 int out_flds = _nOutFlds + 1;
                 AttrType[] attrOutput = new AttrType[out_flds];
-                attrOutput[0] = new AttrType(AttrType.attrString);
-                for (int i = 1; i < out_flds; i++) {
-                    attrOutput[i] = new AttrType(AttrType.attrReal);
+                if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                    attrOutput[0] = new AttrType(AttrType.attrString);
+                } else {
+                    attrOutput[0] = new AttrType(AttrType.attrInteger);
+                }
+                for(int i = 1; i < out_flds; i++) {
+                    attrOutput[i] = new AttrType(AttrType.attrInteger);
                 }
                 returnTuple.setHdr((short) out_flds, attrOutput, _t1_str_sizescopy);
-                returnTuple.setStrFld(1, outputStr);
+                if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
+                    returnTuple.setStrFld(1, str);
+                } else {
+                    returnTuple.setIntFld(1, intr);
+                }
                 for (int i = 0; i < _nOutFlds; i++) {
-                    returnTuple.setFloFld(i + 2, skyline_mainm.get(0).getIntFld(i + 2));
+                    returnTuple.setIntFld(i + 2, skylines.get(0).getIntFld(_agg_list[i].offset));
                 }
 
-                skyline_mainm.remove(0);
+                skylines.remove(0);
                 rets.add(returnTuple);
             } else {
                 break;
