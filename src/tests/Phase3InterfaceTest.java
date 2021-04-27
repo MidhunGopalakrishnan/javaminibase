@@ -28,6 +28,8 @@ class Phase3InterfaceTestDriver extends TestDriver
     public static final boolean consoleMode = true;
     HashMap<String,Integer> operatorList = new HashMap<>();
     String dbName="";
+    HashMap<String,ClusteredHashFile> clusteredHashIndexFileMap = new HashMap<>();
+    HashMap<String,HashFile> unClusteredHashIndexFileMap = new HashMap<>();
 
     public Phase3InterfaceTestDriver() {
         super("phase3interfacetest");
@@ -104,14 +106,14 @@ class Phase3InterfaceTestDriver extends TestDriver
         //create_table src/data/phase3demo/r_sii2000_1_75_200.csv
         //create_index BTREE 1 r_sii2000_1_75_200
         //create_index BTREE 2 r_sii2000_1_75_200
-        //create_table src/data/phase3demo/r_sii2000_10_10_10.csv
+        //create_table CLUSTERED HASH 2 src/data/phase3demo/r_sii2000_10_10_10.csv
         //create_index BTREE 1 r_sii2000_10_10_10
         //create_index BTREE 2 r_sii2000_10_10_10
         //create_index BTREE 2 r_sii2000_1_75_200 -- fail
         //create_index HASH 1 r_sii2000_1_75_200
         //create_index HASH 2 r_sii2000_1_75_200
         //create_index HASH 2 r_sii2000_1_75_200 --fail
-        //insert_data r_sii2000_1_75_200 src/data/phase3demo/r_sii2000_10_10_10.csv
+        //insert_data r_sii2000_10_10_10 src/data/phase3demo/r_sii2000_1_75_200.csv
         //delete_data r_sii2000_1_75_200 src/data/phase3demo/r_sii2000_10_10_10.csv
         //output_table r_sii2000_10_10_10_dup
         //output_index r_sii2000_10_10_10 1
@@ -126,7 +128,7 @@ class Phase3InterfaceTestDriver extends TestDriver
         //JOIN NLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER nlj_output
         //JOIN INLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER inlj_output2
         //JOIN INLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER inlj_output2
-        //JOIN HJ r_sii2000_10_10_10 2 r_sii2000_10_10_10_dup 2 = 5 MATER hj_2
+        //JOIN HJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER hj_2
         //JOIN SMJ r_sii2000_10_10_10 2 r_sii2000_10_10_10_dup 2 = 5 MATER join_smj
         //GROUPBY HASH MAX 1 2,3 r_sii2000_10_10_10 5
         //create_table CLUSTERED HASH 1 src/data/phase3demo/r_sii2000_10_10_10.csv
@@ -1826,6 +1828,21 @@ class Phase3InterfaceTestDriver extends TestDriver
                     }
                     if (typeMatch) {
 
+//                        boolean clusteredTable = false;
+//                        boolean unclusteredTable = false;
+
+//                        for(String indexName : clusteredHashIndexFileMap.keySet()) {
+//                            if(indexName.contains(tableName)) {
+//                                clusteredTable = true;
+//                            }
+//                        }
+//
+//                        for(String indexName : unClusteredHashIndexFileMap.keySet()) {
+//                            if(indexName.contains(tableName)) {
+//                                unclusteredTable = true;
+//                            }
+//                        }
+
                         Tuple t = new Tuple();
                         RID rid;
                         try {
@@ -1897,9 +1914,11 @@ class Phase3InterfaceTestDriver extends TestDriver
         }
     }
 
-    private void createUnclusteredHashIndex(String tableName, int attrNo) {
+    private HashFile createUnclusteredHashIndex(String tableName, int attrNo) {
         float utilization = 0.75f;
         String indexFileName = tableName + "UNCLUST" + "HASH" + attrNo;
+
+        HashFile hash_file = null;
 
         TableMetadata tm = tableMetadataMap.get(tableName);
         // Check for TABLE_NAME+CLUST/UNCLUST+BTREE/HASH+FIELDNO
@@ -1933,7 +1952,7 @@ class Phase3InterfaceTestDriver extends TestDriver
 
             try {
 
-                HashFile hash_file = new HashFile(indexFileName, attrType[attrNo-1].attrType, REC_LEN1, 1, utilization);
+                hash_file = new HashFile(indexFileName, attrType[attrNo-1].attrType, REC_LEN1, 1, utilization);
                 RID rid = new RID();
                 Tuple temp = null;
                 hash.KeyClass key = null;
@@ -1961,8 +1980,9 @@ class Phase3InterfaceTestDriver extends TestDriver
          else{
                 System.out.println("Unclustered Hash index already exist for table " + tableName + " - " + attrNo);
             }
+         return hash_file;
         }
-    private void createClusteredHashIndex(String tableName, int attrNo,Heapfile hf,String fileName) {
+    private ClusteredHashFile createClusteredHashIndex(String tableName, int attrNo,Heapfile hf,String fileName) {
         String indexFileName = tableName+"HASH"+attrNo;
         float utilization = 0.75f;
         ClusteredHashFile c_hash_file=null;
@@ -2052,12 +2072,15 @@ class Phase3InterfaceTestDriver extends TestDriver
             s.close();
             c_hash_file.print_all();
             //update the table metadata map
-            TableMetadata tm = new TableMetadata(tableName, attrType,attrSize);
-            tableMetadataMap.put(tableName, tm);
-            updateIndexEntryToTableMetadata(tableName,indexFileName);
+            if(!tableMetadataMap.containsKey(tableName)) {
+                TableMetadata tm = new TableMetadata(tableName, attrType, attrSize);
+                tableMetadataMap.put(tableName, tm);
+                updateIndexEntryToTableMetadata(tableName, indexFileName);
+            }
         } catch(Exception e) {
             e.printStackTrace();
         }
+        return c_hash_file;
     }
 
     private void createUnclusteredBTreeIndex(String tableName, int attrNo) {
@@ -2162,7 +2185,8 @@ class Phase3InterfaceTestDriver extends TestDriver
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-                createClusteredHashIndex(tableName, attrNo, hf, fileName);
+
+                clusteredHashIndexFileMap.put(tableName+"HASH"+attrNo,createClusteredHashIndex(tableName, attrNo, hf, fileName));
             } else {
                 System.out.println("Table already exist!");
             }

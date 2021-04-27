@@ -30,7 +30,7 @@ import iterator.TupleUtils;
  * btfile.java This is the main definition of class BTreeFile, which derives
  * from abstract base class IndexFile. It provides an insert/delete interface.
  */
-public class ClusteredHashFile extends IndexFile implements GlobalConst {
+public class ClusteredHashFile extends IndexFile implements GlobalConst,Serializable {
 
     private final static int MAGIC0 = 1989;
 
@@ -196,7 +196,7 @@ public class ClusteredHashFile extends IndexFile implements GlobalConst {
      */
     public ClusteredHashFile(String filename, int keytype, int keysize, int delete_fashion, float utilization_input, Heapfile hf)
             throws GetFileEntryException, ConstructPageException, IOException, AddFileEntryException {
-        headerPageId = get_file_entry(filename);
+//        headerPageId = get_file_entry(filename);
         if (headerPageId == null) // file not exist
         {
             headerPage = new HashHeaderPage();

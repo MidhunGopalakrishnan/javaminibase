@@ -630,7 +630,7 @@ public class GroupBy extends Iterator implements GlobalConst {
                         skylines.add(t1);
                     }
 
-                    cur = _iscan.get_next();
+//                    cur = _iscan.get_next();
 
                     _skyline.deleteFile();
                     _skyline = new Heapfile("sky");

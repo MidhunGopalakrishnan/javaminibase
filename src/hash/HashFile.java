@@ -30,7 +30,7 @@ import iterator.TupleUtils;
  * btfile.java This is the main definition of class BTreeFile, which derives
  * from abstract base class IndexFile. It provides an insert/delete interface.
  */
-public class HashFile extends IndexFile implements GlobalConst {
+public class HashFile extends IndexFile implements GlobalConst,Serializable {
 
 	private final static int MAGIC0 = 1989;
 
