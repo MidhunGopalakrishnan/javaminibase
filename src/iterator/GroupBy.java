@@ -472,6 +472,7 @@ public class GroupBy extends Iterator implements GlobalConst {
                         rets.add(t);
                     }
                 }
+                _iscan.close();
             }
 
             if(rets.isEmpty()) { return null; }
@@ -584,16 +585,18 @@ public class GroupBy extends Iterator implements GlobalConst {
 
                 _am.close();
                 _s.close();
+                _hash_file.close();
             }
 
         } else {
             if(first) {
                 Boolean check = false;
-                _skyline = new Heapfile("sky");
 
                 cur = _iscan.get_next();
 
                 while(cur != null) {
+                    _skyline = new Heapfile("sky");
+
                     if(_in1[_group_by_attr.offset-1].attrType == AttrType.attrString) {
                         outputStr = cur.getStrFld(_group_by_attr.offset);
                     } else {
@@ -633,8 +636,9 @@ public class GroupBy extends Iterator implements GlobalConst {
 //                    cur = _iscan.get_next();
 
                     _skyline.deleteFile();
-                    _skyline = new Heapfile("sky");
                 }
+
+                _iscan.close();
             }
         }
 
@@ -706,7 +710,11 @@ public class GroupBy extends Iterator implements GlobalConst {
         if (!closeFlag) {
 
             try {
-                //_am1.close();
+                if(!_isHash) {
+                    _iscan.close();
+                } else {
+                    _hash_file.close();
+                }
             }
             catch (Exception e) {
                 //throw new GroupByException(e, "GroupBy.java: error in closing iterator.");
