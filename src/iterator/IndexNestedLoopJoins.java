@@ -71,7 +71,8 @@ public class IndexNestedLoopJoins extends Iterator {
                                 int n_out_flds,
                                 boolean materialize,
                                 int innerAttNo,
-                                HashMap<String, TableMetadata> tableMetadataMap
+                                HashMap<String, TableMetadata> tableMetadataMap,
+                                String outputTableName
     ) throws IOException, JoinsException, IndexException, InvalidTupleSizeException, InvalidTypeException, PageNotReadException, TupleUtilsException, PredEvalException, SortException, LowMemException, UnknowAttrType, UnknownKeyTypeException, Exception {
         _in1 = new AttrType[in1.length];
         _in2 = new AttrType[in2.length];
@@ -120,14 +121,28 @@ public class IndexNestedLoopJoins extends Iterator {
             jList[i] = _in2[i - len_in1];
         }
 
+        short[] jSize = new short[t1_str_sizes.length+t2_str_sizes.length];
+        for (int i=0; i< t1_str_sizes.length;i++){
+            jSize[i] = t1_str_sizes[i];
+        }
+        for(int i= t1_str_sizes.length; i < (t1_str_sizes.length+t2_str_sizes.length) ;i++){
+            jSize[i] = t2_str_sizes[i-t1_str_sizes.length];
+        }
+
+
         //*********************************************************************
         //TODO: add logic to determine if index structure already exists for inner relation
         //TODO: and call appropriate method based on result
         //*********************************************************************
         ArrayList<String> indexNames = tableMetadataMap.get(relationName).indexNameList;
+        Heapfile outHeap =null;
+        if(!outputTableName.equals("")) {
+            outHeap = new Heapfile(outputTableName);
+        }
 
         if (indexNames.contains(relationName + "UNCLUST" + "BTREE" + innerAttNo)) {
             iterator.Iterator am2 = null;
+
 
             do {
                 // If get_from_outer is true, Get a tuple from the outer, delete
@@ -169,6 +184,12 @@ public class IndexNestedLoopJoins extends Iterator {
                             inner = null;
                         }
 
+                        if(!outputTableName.equals("") && materialize){
+                            //update the table metadata map
+                            TableMetadata tm = new TableMetadata(outputTableName, jList, jSize);
+                            tableMetadataMap.put(outputTableName, tm);
+                        }
+
                         return;
                     }
                 }  // ENDS: if (get_from_outer == TRUE)
@@ -196,9 +217,11 @@ public class IndexNestedLoopJoins extends Iterator {
 
                         //Jtuple.print(_in1);
                         //Jtuple.print(_in2);
-                        System.out.println("printing tuple after join occurs");
+//                        System.out.println("printing tuple after join occurs");
                         Jtuple.print(jList);
-
+                        if(!outputTableName.equals("") && materialize) {
+                            outHeap.insertRecord(Jtuple.returnTupleByteArray());
+                        }
 
                         //return;
                     }
@@ -211,20 +234,14 @@ public class IndexNestedLoopJoins extends Iterator {
 
                 get_from_outer = true; // Loop back to top and get next outer tuple.
             } while (true);
-            /*
-            if (materialize) {
-                TableMetadata tm = new TableMetadata(outTableName, attrType, attrSize);
-                tableMetadataMap.put(outTableName, tm);
-            }
 
-             */
         } else if ((indexNames.contains(relationName + "UNCLUST" + "HASH" + innerAttNo)) || (indexNames.contains(relationName + "CLUST" + "HASH" + innerAttNo))) {
             try {
                 //modify to accept metadata map and if it should be materialized
                 HashJoins hJoin = new HashJoins(
                         _in1, in1_len, t1_str_sizescopy, _in2, in2_len, t2_str_sizescopy, n_buf_pgs,
                         am1, relationName, OutputFilter, RightFilter, perm_mat, n_out_flds, materialize, innerAttNo,
-                        tableMetadataMap);
+                        tableMetadataMap,outputTableName);
             } catch (Exception e) {
                 e.printStackTrace();
                 Runtime.getRuntime().exit(1);
@@ -242,14 +259,16 @@ public class IndexNestedLoopJoins extends Iterator {
                     //add join table to tablemetadata
                     //and create new table
                     t.print(jList);
+                    if(!outputTableName.equals("") && materialize) {
+                        outHeap.insertRecord(t.returnTupleByteArray());
+                    }
                 }
-                /*
-                if (materialize) {
-                    TableMetadata tm = new TableMetadata(outTableName, jList, attrSize);
-                    tableMetadataMap.put(outTableName, tm);
+                if(!outputTableName.equals("") && materialize){
+                    //update the table metadata map
+                    TableMetadata tm = new TableMetadata(outputTableName, jList, jSize);
+                    tableMetadataMap.put(outputTableName, tm);
                 }
 
-                 */
             } catch (Exception e) {
                 System.err.println("" + e);
                 e.printStackTrace();

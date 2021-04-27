@@ -73,9 +73,9 @@ public class Tuple implements GlobalConst{
   {
        // Creat a new tuple
 // CHANGED BY BLAKE++++++++++++++++++++++++++++++++++++++++++++++++++
-       data = new byte[60];
+       data = new byte[70];
        tuple_offset = 0;
-       tuple_length = 60;
+       tuple_length = 70;
   }
    
    /** Constructor

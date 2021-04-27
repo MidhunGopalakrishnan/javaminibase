@@ -67,7 +67,8 @@ public class HashJoins extends Iterator{
                       int        n_out_flds,
                       boolean materialize,
                       int innerAttNo,
-                      HashMap<String, TableMetadata> tableMetadataMap
+                      HashMap<String, TableMetadata> tableMetadataMap,
+                      String outputTableName
     ) throws IOException, JoinsException, IndexException, InvalidTupleSizeException, InvalidTypeException, PageNotReadException, TupleUtilsException, PredEvalException, SortException, LowMemException, UnknowAttrType, UnknownKeyTypeException, Exception {
         _in1 = new AttrType[in1.length];
         _in2 = new AttrType[in2.length];
@@ -113,6 +114,18 @@ public class HashJoins extends Iterator{
             jList[i] = _in2[i - len_in1];
         }
 
+        short[] jSize = new short[t1_str_sizes.length+t2_str_sizes.length];
+        for (int i=0; i< t1_str_sizes.length;i++){
+            jSize[i] = t1_str_sizes[i];
+        }
+        for(int i= t1_str_sizes.length; i < (t1_str_sizes.length+t2_str_sizes.length) ;i++){
+            jSize[i] = t2_str_sizes[i-t1_str_sizes.length];
+        }
+
+        Heapfile outHeap =null;
+        if(!outputTableName.equals("")) {
+            outHeap = new Heapfile(outputTableName);
+        }
 
 
         //create hash index**************************************
@@ -225,14 +238,22 @@ public class HashJoins extends Iterator{
                                     t, _in2,
                                     Jtuple, perm_mat, nOutFlds);
 
-                            System.out.println("printing tuple after join occurs");
+//                            System.out.println("printing tuple after join occurs");
                             Jtuple.print(jList);
-
+                            if(!outputTableName.equals("") && materialize) {
+                                outHeap.insertRecord(t.returnTupleByteArray());
+                            }
 
                             //return;
                         }
                     }
                 }
+            }
+
+            if(!outputTableName.equals("") && materialize){
+                //update the table metadata map
+                TableMetadata tm = new TableMetadata(outputTableName, jList, jSize);
+                tableMetadataMap.put(outputTableName, tm);
             }
         }
         catch(Exception e){

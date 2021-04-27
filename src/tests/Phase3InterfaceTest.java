@@ -23,10 +23,11 @@ class Phase3InterfaceTestDriver extends TestDriver
     HashMap<String, TableMetadata> tableMetadataMap = new HashMap<>();
     public static final int STR_LEN = 13;
     private static short REC_LEN1 = 15;
-    public static final String metadatafileName = "/tmp/tablemetadata.ser";
+    public static final String metadatafileName = "tablemetadata.ser";
     public static final String commandFile = "/Users/nberlandier/Desktop/command.txt";
     public static final boolean consoleMode = true;
     HashMap<String,Integer> operatorList = new HashMap<>();
+    String dbName="";
 
     public Phase3InterfaceTestDriver() {
         super("phase3interfacetest");
@@ -122,7 +123,10 @@ class Phase3InterfaceTestDriver extends TestDriver
         //TOPKJOIN HASH 3 r_sii2000_10_10_10 1 2 r_sii2000_10_10_10_dup 3 2 5 MATER topk_hash1
         //TOPKJOIN NRA 3 r_sii2000_1_75_200 1 2 r_sii2000_10_10_10 1 2 5 MATER topk_hash1
         //output_table topk_hash1
-        //JOIN NLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
+        //JOIN NLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER nlj_output
+        //JOIN INLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER inlj_output2
+        //JOIN INLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER inlj_output2
+        //JOIN HJ r_sii2000_10_10_10 2 r_sii2000_10_10_10_dup 2 = 5 MATER hj_1
         //JOIN SMJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
         //GROUPBY HASH MAX 1 2,3 r_sii2000_10_10_10 5
         //create_table CLUSTERED HASH 1 src/data/phase3demo/r_sii2000_10_10_10.csv
@@ -209,8 +213,12 @@ class Phase3InterfaceTestDriver extends TestDriver
                         System.out.println();
                         break;
                     case "exit_db":
-                        continueWhile = false;
-                        System.out.println("Exiting DB\n");
+                        System.out.println("Do you really want to exit ? All changes done so far will be lost! (Y/N) : ");
+                        String exit = sc.next();
+                        if(exit.equals("Y")) {
+                            continueWhile = false;
+                            System.out.println("Exiting DB\n");
+                        }
                         break;
                     default:
                         System.out.println("Invalid syntax. Try again \n");
@@ -588,6 +596,10 @@ class Phase3InterfaceTestDriver extends TestDriver
                     e.printStackTrace();
                 }
 
+                Heapfile outHeap =null;
+                if(!outputTableName.equals("")) {
+                    outHeap = new Heapfile(outputTableName);
+                }
 
                 while ((temp = nlj.get_next()) != null) {
                     t.tupleCopy(temp);
@@ -596,6 +608,14 @@ class Phase3InterfaceTestDriver extends TestDriver
                     //add join table to tablemetadata
                     //and create new table
                     t.print(jList);
+                    if(!outputTableName.equals("") && materialize) {
+                        outHeap.insertRecord(t.returnTupleByteArray());
+                    }
+                }
+                if(!outputTableName.equals("")){
+                    //update the table metadata map
+                    TableMetadata tm = new TableMetadata(outputTableName, jList, jSize);
+                    tableMetadataMap.put(outputTableName, tm);
                 }
             } catch (Exception e){
                 e.printStackTrace();
@@ -673,7 +693,8 @@ class Phase3InterfaceTestDriver extends TestDriver
                         attrType1.length + attrType2.length,
                         materialize,
                         innerAttrNo,
-                        tableMetadataMap
+                        tableMetadataMap,
+                        outputTableName
                 );
             } catch (Exception e){
                 e.printStackTrace();
@@ -703,21 +724,25 @@ class Phase3InterfaceTestDriver extends TestDriver
             materialize = true;
             outputTableName = commandList[8];
         }
-        HashMap<String,Integer> aggTypeMap = new HashMap<>();
-        aggTypeMap.put("MAX",AggType.aggMax);
-        aggTypeMap.put("MIN",AggType.aggMin);
-        aggTypeMap.put("AVG",AggType.aggAvg);
-        aggTypeMap.put("SKY",AggType.aggSky);
+        if(tableMetadataMap.containsKey(tableName)) {
+            HashMap<String, Integer> aggTypeMap = new HashMap<>();
+            aggTypeMap.put("MAX", AggType.aggMax);
+            aggTypeMap.put("MIN", AggType.aggMin);
+            aggTypeMap.put("AVG", AggType.aggAvg);
+            aggTypeMap.put("SKY", AggType.aggSky);
 
-        switch (groupType) {
-            case "SORT":
-                output_gb_sort(aggTypeMap.get(aggrType),grpAttrNo,aggAttrArray,tableName,n_pages,materialize,outputTableName);
-                break;
-            case "HASH":
-                output_gb_hash(aggTypeMap.get(aggrType),grpAttrNo,aggAttrArray,tableName,n_pages,materialize,outputTableName);
-                break;
-            default :
-                System.out.println("GroupBy Type enetered is invalid");
+            switch (groupType) {
+                case "SORT":
+                    output_gb_sort(aggTypeMap.get(aggrType), grpAttrNo, aggAttrArray, tableName, n_pages, materialize, outputTableName);
+                    break;
+                case "HASH":
+                    output_gb_hash(aggTypeMap.get(aggrType), grpAttrNo, aggAttrArray, tableName, n_pages, materialize, outputTableName);
+                    break;
+                default:
+                    System.out.println("GroupBy Type enetered is invalid");
+            }
+        }else {
+            System.out.println("Table does not exist!");
         }
 
     }
@@ -908,7 +933,8 @@ class Phase3InterfaceTestDriver extends TestDriver
                         attrType1.length + attrType2.length,
                         materialize,
                         innerAttrNo,
-                        tableMetadataMap
+                        tableMetadataMap,
+                        outputTableName
                 );
             } catch (Exception e){
                 e.printStackTrace();
@@ -1003,24 +1029,28 @@ class Phase3InterfaceTestDriver extends TestDriver
             materialize = true;
             outTableName = commandList[6];
         }
-        switch (skylineOperation){
-            case "NLS":
-                output_NLS(tableName,attrList,outTableName,n_pages,materialize);
-                break;
-            case "BNLS":
-                output_BNLS(tableName,attrList,outTableName,n_pages,materialize);
-                break;
-            case "SFS":
-                output_SFS(tableName,attrList,outTableName,n_pages,materialize);
-                break;
-            case "BTS":
-                output_BTS(tableName,attrList,outTableName,n_pages,materialize);
-                break;
-            case "BTSS":
-                output_BTSS(tableName,attrList,outTableName,n_pages,materialize);
-                break;
-            default:
-                System.out.println("Invalid skyline operator specified. Please recheck.");
+        if(tableMetadataMap.containsKey(tableName)) {
+            switch (skylineOperation) {
+                case "NLS":
+                    output_NLS(tableName, attrList, outTableName, n_pages, materialize);
+                    break;
+                case "BNLS":
+                    output_BNLS(tableName, attrList, outTableName, n_pages, materialize);
+                    break;
+                case "SFS":
+                    output_SFS(tableName, attrList, outTableName, n_pages, materialize);
+                    break;
+                case "BTS":
+                    output_BTS(tableName, attrList, outTableName, n_pages, materialize);
+                    break;
+                case "BTSS":
+                    output_BTSS(tableName, attrList, outTableName, n_pages, materialize);
+                    break;
+                default:
+                    System.out.println("Invalid skyline operator specified. Please recheck.");
+            }
+        } else {
+            System.out.println("Table does not exist!");
         }
 
     }
@@ -1368,43 +1398,46 @@ class Phase3InterfaceTestDriver extends TestDriver
 
     private void output_index(String[] commandList) {
         String tableName = commandList[1];
-        int attrNo = Integer.parseInt(commandList[2]);
-        ArrayList<String> attrIndexList = new ArrayList<>();
+        if(tableMetadataMap.containsKey(tableName)) {
+            int attrNo = Integer.parseInt(commandList[2]);
+            ArrayList<String> attrIndexList = new ArrayList<>();
 
-        ArrayList<String> indexList = tableMetadataMap.get(tableName).indexNameList;
-        for(int i=0;i<indexList.size();i++){
-            // Check for TABLE_NAME+CLUST/UNCLUST+BTREE/HASH+FIELDNO
-            String indexName = indexList.get(i);
-            int position = indexName.lastIndexOf(String.valueOf(attrNo));
-            if(position!=-1){
-                attrIndexList.add(indexName);
+            ArrayList<String> indexList = tableMetadataMap.get(tableName).indexNameList;
+            for (int i = 0; i < indexList.size(); i++) {
+                // Check for TABLE_NAME+CLUST/UNCLUST+BTREE/HASH+FIELDNO
+                String indexName = indexList.get(i);
+                int position = indexName.lastIndexOf(String.valueOf(attrNo));
+                if (position != -1) {
+                    attrIndexList.add(indexName);
+                }
             }
-        }
-        if(attrIndexList.size()!=0){
-            System.out.println(attrIndexList.size()+ " indexes present for the attribute number "+attrNo);
-            System.out.println("Index List : ");
-            for(String indexName : attrIndexList){
-                System.out.println(indexName);
-            }
-            String indexFileName = attrIndexList.get(0);
-            boolean unclustered = indexFileName.contains("UNCLUST");
-            boolean btree = indexFileName.contains("BTREE");
-            if(unclustered && btree){
-                // unclustered Btree
-                printKeysForUnclustBTree(tableName,indexFileName,attrNo,IndexType.B_Index);
+            if (attrIndexList.size() != 0) {
+                System.out.println(attrIndexList.size() + " indexes present for the attribute number " + attrNo);
+                System.out.println("Index List : ");
+                for (String indexName : attrIndexList) {
+                    System.out.println(indexName);
+                }
+                String indexFileName = attrIndexList.get(0);
+                boolean unclustered = indexFileName.contains("UNCLUST");
+                boolean btree = indexFileName.contains("BTREE");
+                if (unclustered && btree) {
+                    // unclustered Btree
+                    printKeysForUnclustBTree(tableName, indexFileName, attrNo, IndexType.B_Index);
 
-            } else if(unclustered && !btree) {
-                // unclustered Hash
-                printKeysForHashFile(tableName,indexFileName,attrNo,IndexType.Hash);
+                } else if (unclustered && !btree) {
+                    // unclustered Hash
+                    printKeysForHashFile(tableName, indexFileName, attrNo, IndexType.Hash);
+                } else {
+                    // clustered Hash
+                    printKeysForHashFile(tableName, indexFileName, attrNo, IndexType.Hash);
+                }
+
             } else {
-                // clustered Hash
-                printKeysForHashFile(tableName,indexFileName,attrNo,IndexType.Hash);
+                System.out.println("N/A");
             }
-
-        } else {
-            System.out.println("N/A");
+        }else {
+            System.out.println("Table does not exist!");
         }
-
 
     }
 
@@ -1628,39 +1661,43 @@ class Phase3InterfaceTestDriver extends TestDriver
 
     private void output_table(String[] commandList) {
         String tableName = commandList[1];
+        if(tableMetadataMap.containsKey(tableName)) {
 
-        Heapfile heapFileName = null;
+            Heapfile heapFileName = null;
 
-        try {
-            heapFileName = new Heapfile(tableName);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        Tuple t = new Tuple();
-        AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
-        short[] attrSize = tableMetadataMap.get(tableName).attrSize;
-        try {
-            t.setHdr((short) attrType.length, attrType, attrSize);
-        } catch (Exception e) {
-            System.err.println("*** error in Tuple.setHdr() ***");
-            e.printStackTrace();
-        }
-
-        Scan scan = null;
-
-        try {
-            scan = new Scan(heapFileName);
-            RID rid = new RID();
-            Tuple temp = null;
-            System.out.println("Printing table data : "+ tableName);
-            while ((temp = scan.getNext(rid)) != null) {
-                t.tupleCopy(temp);
-                t.print(attrType);
+            try {
+                heapFileName = new Heapfile(tableName);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Runtime.getRuntime().exit(1);
+
+            Tuple t = new Tuple();
+            AttrType[] attrType = tableMetadataMap.get(tableName).attrType;
+            short[] attrSize = tableMetadataMap.get(tableName).attrSize;
+            try {
+                t.setHdr((short) attrType.length, attrType, attrSize);
+            } catch (Exception e) {
+                System.err.println("*** error in Tuple.setHdr() ***");
+                e.printStackTrace();
+            }
+
+            Scan scan = null;
+
+            try {
+                scan = new Scan(heapFileName);
+                RID rid = new RID();
+                Tuple temp = null;
+                System.out.println("Printing table data : " + tableName);
+                while ((temp = scan.getNext(rid)) != null) {
+                    t.tupleCopy(temp);
+                    t.print(attrType);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                Runtime.getRuntime().exit(1);
+            }
+        } else {
+            System.out.println("Table does not exist! Create table first.");
         }
     }
 
@@ -2030,17 +2067,20 @@ class Phase3InterfaceTestDriver extends TestDriver
         } else if(commandList.length ==5){
             attrNo = Integer.parseInt(commandList[3]);
             fileName = commandList[4];
-//            createHeapFile(fileName);
             int fileNameStartIndex = fileName.lastIndexOf("/");
             int dotIndex = fileName.lastIndexOf(".");
             tableName = fileName.substring(fileNameStartIndex+1,dotIndex);
-            Heapfile hf = null;
-            try {
-                hf = new Heapfile(tableName);
-            }catch (Exception e) {
-                e.printStackTrace();
+            if(!tableMetadataMap.containsKey(tableName)) {
+                Heapfile hf = null;
+                try {
+                    hf = new Heapfile(tableName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                createClusteredHashIndex(tableName, attrNo, hf, fileName);
+            } else {
+                System.out.println("Table already exist!");
             }
-            createClusteredHashIndex(tableName,attrNo,hf,fileName);
         } else {
             System.out.println("Invalid syntax. Please recheck");
         }
@@ -2143,10 +2183,10 @@ class Phase3InterfaceTestDriver extends TestDriver
     private void close_database() {
         try {
             //delete metadata file and push new map
-            File myObj = new File(metadatafileName);
+            File myObj = new File("/tmp/"+dbName+metadatafileName);
             myObj.delete();
             FileOutputStream fileOut =
-                    new FileOutputStream(metadatafileName);
+                    new FileOutputStream("/tmp/"+dbName+metadatafileName);
             ObjectOutputStream out = new ObjectOutputStream(fileOut);
             out.writeObject(tableMetadataMap);
             out.close();
@@ -2160,15 +2200,15 @@ class Phase3InterfaceTestDriver extends TestDriver
     }
 
     private void open_database(String[] commandList) {
-        String dbName = commandList[1];
+        dbName = commandList[1];
         String dbpathUser = "/tmp/"+dbName+System.getProperty("user.name")+".minibasev8-db";
         SystemDefs sysdef = new SystemDefs(dbpathUser, 10000, NUMBUF, "Clock");
         //populate the table metadataList
         try{
-            File tempFile = new File(metadatafileName);
+            File tempFile = new File("/tmp/"+dbName+metadatafileName);
             boolean exists = tempFile.exists();
             if (exists) {
-                FileInputStream fileIn = new FileInputStream(metadatafileName);
+                FileInputStream fileIn = new FileInputStream("/tmp/"+dbName+metadatafileName);
                 ObjectInputStream in = new ObjectInputStream(fileIn);
                 tableMetadataMap = (HashMap<String, TableMetadata>) in.readObject();
             }
@@ -2180,39 +2220,39 @@ class Phase3InterfaceTestDriver extends TestDriver
             e.printStackTrace();
         }
 
-        String newdbpath;
-        String newlogpath;
-        String remove_logcmd;
-        String remove_dbcmd;
-        String remove_cmd = "/bin/rm -rf ";
-
-        newdbpath = dbpath;
-        newlogpath = logpath;
-
-        remove_logcmd = remove_cmd + logpath;
-        remove_dbcmd = remove_cmd + dbpath;
-
-        // Commands here is very machine dependent.  We assume
-        // user are on UNIX system here
-        try {
-            Runtime.getRuntime().exec(remove_logcmd);
-            Runtime.getRuntime().exec(remove_dbcmd);
-        } catch (IOException e) {
-            System.err.println("" + e);
-        }
-
-        remove_logcmd = remove_cmd + newlogpath;
-        remove_dbcmd = remove_cmd + newdbpath;
-
-        //This step seems redundant for me.  But it's in the original
-        //C++ code.  So I am keeping it as of now, just in case I
-        //I missed something
-        try {
-            Runtime.getRuntime().exec(remove_logcmd);
-            Runtime.getRuntime().exec(remove_dbcmd);
-        } catch (IOException e) {
-            System.err.println("" + e);
-        }
+//        String newdbpath;
+//        String newlogpath;
+//        String remove_logcmd;
+//        String remove_dbcmd;
+//        String remove_cmd = "/bin/rm -rf ";
+//
+//        newdbpath = dbpath;
+//        newlogpath = logpath;
+//
+//        remove_logcmd = remove_cmd + logpath;
+//        remove_dbcmd = remove_cmd + dbpath;
+//
+//        // Commands here is very machine dependent.  We assume
+//        // user are on UNIX system here
+//        try {
+//            Runtime.getRuntime().exec(remove_logcmd);
+//            Runtime.getRuntime().exec(remove_dbcmd);
+//        } catch (IOException e) {
+//            System.err.println("" + e);
+//        }
+//
+//        remove_logcmd = remove_cmd + newlogpath;
+//        remove_dbcmd = remove_cmd + newdbpath;
+//
+//        //This step seems redundant for me.  But it's in the original
+//        //C++ code.  So I am keeping it as of now, just in case I
+//        //I missed something
+//        try {
+//            Runtime.getRuntime().exec(remove_logcmd);
+//            Runtime.getRuntime().exec(remove_dbcmd);
+//        } catch (IOException e) {
+//            System.err.println("" + e);
+//        }
     }
 
     protected boolean test2(){

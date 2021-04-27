@@ -4,6 +4,8 @@ import bufmgr.*;
 import diskmgr.*;
 import catalog.*;
 
+import java.io.File;
+
 public class SystemDefs {
   public static BufMgr	JavabaseBM;
   public static DB	JavabaseDB;
@@ -83,7 +85,12 @@ public class SystemDefs {
       } 
       else {
 	try {
-	  JavabaseDB.openDB(dbname,num_pgs);
+	   File obj = new File(dbname);
+	   if(obj.exists()){
+           JavabaseDB.openDB(dbname);
+       } else{
+	       JavabaseDB.openDB(dbname,num_pgs);
+       }
 	  JavabaseBM.flushAllPages();
 	}
 	catch (Exception e) {
