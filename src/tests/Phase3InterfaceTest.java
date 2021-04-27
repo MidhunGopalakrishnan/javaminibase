@@ -848,6 +848,7 @@ class Phase3InterfaceTestDriver extends TestDriver
                     TableMetadata tm = new TableMetadata(outputTableName, attrOutput, attrSize);
                     tableMetadataMap.put(outputTableName, tm);
                 }
+                gb.close();
             } catch(Exception e) {
                 e.printStackTrace();
             }
@@ -943,7 +944,7 @@ class Phase3InterfaceTestDriver extends TestDriver
                     TableMetadata tm = new TableMetadata(outputTableName, attrOutput, attrSize);
                     tableMetadataMap.put(outputTableName, tm);
                 }
-
+                gb.close();
             } catch(Exception e) {
                 e.printStackTrace();
             }
