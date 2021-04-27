@@ -293,7 +293,7 @@ public class HashJoins extends Iterator{
                     intSearchKey = tempOuter.getIntFld(innerAttNo);
                     searchResults = hash_file.search(new IntegerKey(intSearchKey));
                     if(searchResults != null) {
-                        System.out.println(searchResults.size());
+//                        System.out.println(searchResults.size());
                         for (int i = 0; i < searchResults.size(); i++) {
                             rid = searchResults.get(i);
                             //rid = searchResults.get(0);
