@@ -127,7 +127,7 @@ class Phase3InterfaceTestDriver extends TestDriver
         //JOIN INLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER inlj_output2
         //JOIN INLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER inlj_output2
         //JOIN HJ r_sii2000_10_10_10 2 r_sii2000_10_10_10_dup 2 = 5 MATER hj_2
-        //JOIN SMJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5
+        //JOIN SMJ r_sii2000_10_10_10 2 r_sii2000_10_10_10_dup 2 = 5 MATER join_smj
         //GROUPBY HASH MAX 1 2,3 r_sii2000_10_10_10 5
         //create_table CLUSTERED HASH 1 src/data/phase3demo/r_sii2000_10_10_10.csv
 
@@ -437,7 +437,13 @@ class Phase3InterfaceTestDriver extends TestDriver
 
 
         try {
-                TupleOrder ascending = new TupleOrder(TupleOrder.Ascending);
+
+            Heapfile outHeap =null;
+            if(!outputTableName.equals("")) {
+                outHeap = new Heapfile(outputTableName);
+            }
+
+            TupleOrder ascending = new TupleOrder(TupleOrder.Ascending);
                 SortMerge sm = new SortMerge(attrType1,
                         attrType1.length,
                         attrSize1,
@@ -493,10 +499,20 @@ class Phase3InterfaceTestDriver extends TestDriver
                     //add join table to tablemetadata
                     //and create new table
                     t.print(jList);
+                    if(!outputTableName.equals("") && materialize) {
+                        outHeap.insertRecord(t.returnTupleByteArray());
+                    }
                 }
+
+            if(!outputTableName.equals("") && materialize){
+                //update the table metadata map
+                TableMetadata tm = new TableMetadata(outputTableName, jList, jSize);
+                tableMetadataMap.put(outputTableName, tm);
+            }
             } catch (Exception e){
                 e.printStackTrace();
             }
+
 
     }
 
