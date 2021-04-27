@@ -106,7 +106,7 @@ class Phase3InterfaceTestDriver extends TestDriver
         //create_table src/data/phase3demo/r_sii2000_1_75_200.csv
         //create_index BTREE 1 r_sii2000_1_75_200
         //create_index BTREE 2 r_sii2000_1_75_200
-        //create_table CLUSTERED HASH 2 src/data/phase3demo/r_sii2000_10_10_10.csv
+        //create_table src/data/phase3demo/r_sii2000_10_10_10.csv
         //create_index BTREE 1 r_sii2000_10_10_10
         //create_index BTREE 2 r_sii2000_10_10_10
         //create_index BTREE 2 r_sii2000_1_75_200 -- fail
@@ -128,7 +128,7 @@ class Phase3InterfaceTestDriver extends TestDriver
         //JOIN NLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER nlj_output
         //JOIN INLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER inlj_output2
         //JOIN INLJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER inlj_output2
-        //JOIN HJ r_sii2000_1_75_200 2 r_sii2000_10_10_10 2 = 5 MATER hj_2
+        //JOIN HJ r_sii2000_10_10_10 2 r_sii2000_10_10_10_dup 2 = 5 MATER hj_2
         //JOIN SMJ r_sii2000_10_10_10 2 r_sii2000_10_10_10_dup 2 = 5 MATER join_smj
         //GROUPBY HASH MAX 1 2,3 r_sii2000_10_10_10 5
         //create_table CLUSTERED HASH 1 src/data/phase3demo/r_sii2000_10_10_10.csv

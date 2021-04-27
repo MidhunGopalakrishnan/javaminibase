@@ -1,7 +1,6 @@
 package iterator;
 
 import btree.BTreeFile;
-import btree.IntegerKey;
 import btree.KeyClass;
 import bufmgr.PageNotReadException;
 import global.*;
@@ -162,14 +161,21 @@ public class HashJoins extends Iterator{
 
             //TODO: check naming convention
             String indexFileName = relationName + "UNCLUST" + "HASH"+ innerAttNo;
-            HashFile hash_file = new HashFile(relationName + "UNCLUST" + "HASH" + innerAttNo, AttrType.attrString, REC_LEN1, 1, utilization);
+            HashFile hash_file = null;
+            if(_in2[innerAttNo].attrType == AttrType.attrString) {
+                hash_file = new HashFile(relationName + "UNCLUST" + "HASH" + innerAttNo, AttrType.attrString, REC_LEN1, 1, utilization);
+            }
+            else{
+                hash_file = new HashFile(relationName + "UNCLUST" + "HASH" + innerAttNo, AttrType.attrInteger, REC_LEN1, 1, utilization);
+            }
             if(!tableMetadataMap.get(relationName).indexNameList.contains(indexFileName)){
                 tableMetadataMap.get(relationName).indexNameList.add(indexFileName);
             }
             RID rid = new RID();
             RID ridToDelete = null;
             PageId deletepid;
-            String key = null;
+            String strKey = null;
+            int intKey = -1;
             Tuple temp = null;
 
             try {
@@ -185,19 +191,45 @@ public class HashJoins extends Iterator{
                 try {
                     //key = String.valueOf(t.getFloFld(pref_list[0] + 1));
                     //TODO: remove hardcoding of field number that is join attr
-                    key = t.getStrFld(innerAttNo);
+                    if(_in2[innerAttNo].attrType == AttrType.attrString)
+                    {
+                        strKey = t.getStrFld(innerAttNo);
+                        intKey = -1;
+                        hash_file.insert(new StringKey(strKey), rid);
+                    }
+                    else if(_in2[innerAttNo].attrType == AttrType.attrInteger)
+                    {
+                        intKey = t.getIntFld(innerAttNo);
+                        strKey = "";
+                        hash_file.insert(new IntegerKey(intKey), rid);
+                    }
+                    else
+                    {
+                        System.out.println("error!");
+                    }
+
                 } catch (Exception e) {
                     //status = FAIL;
                     e.printStackTrace();
                 }
 
+                /*
                 try {
                     //System.out.println("Insert Count is " + (++insert_count) + "\n");
-                    hash_file.insert(new StringKey(key), rid);
+                    if(_in2[innerAttNo].attrType == AttrType.attrString)
+                    {
+                        hash_file.insert(new StringKey(strKey), rid);
+                    }
+                    else
+                    {
+                        hash_file.insert(new IntegerKey(intKey), rid);
+                    }
                 } catch (Exception e) {
                     //status = FAIL;
                     e.printStackTrace();
                 }
+
+                 */
 
                 try {
                     temp = scan.getNext(rid);
@@ -212,42 +244,82 @@ public class HashJoins extends Iterator{
             //TODO: figure out how to access join attribute
             //int joinAttr = 1;
 
-
-            String searchKey = "";
             //ArrayList<RID> ridList = new ArrayList<>();
+            //int count = 0;
             while ((tempOuter = outer.get_next()) != null) {
-                System.out.println("printing outer tuple");
-                tempOuter.print(_in1);
-                System.out.println(tempOuter.getStrFld(innerAttNo));
+                //System.out.println("printing outer tuple");
+                //tempOuter.print(_in1);
+                //System.out.println(tempOuter.getStrFld(innerAttNo));
 
                 //searchKey = Integer.toString(tempOuter.getIntFld(joinAttr));
                 //TODO: the key type that is called depends on the attrtype of the join attr
-                searchKey = tempOuter.getStrFld(innerAttNo);
+                ArrayList<RID> searchResults = new ArrayList<>();
 
-                ArrayList<RID> searchResults = hash_file.search(new StringKey(searchKey));
-                if(searchResults != null) {
-
-                    for (int i = 0; i < searchResults.size(); i++) {
-                        rid = searchResults.get(i);
-                        t = hf.getRecord(rid);
-                        t.setHdr((short) in2_len, _in2, t2_str_sizescopy);
-                        if (PredEval.Eval(OutputFilter, tempOuter, t, _in1, _in2) == true)
-                        {
-                            // Apply a projection on the outer and inner tuples.
-                            Projection.Join(tempOuter, _in1,
-                                    t, _in2,
-                                    Jtuple, perm_mat, nOutFlds);
+                if(_in2[innerAttNo].attrType == AttrType.attrString)
+                {
+                    String strSearchKey = "";
+                    strSearchKey = tempOuter.getStrFld(innerAttNo);
+                    searchResults = hash_file.search(new StringKey(strSearchKey));
+                    if(searchResults != null) {
+                        System.out.println(searchResults.size());
+                        for (int i = 0; i < searchResults.size(); i++) {
+                            rid = searchResults.get(i);
+                            rid = searchResults.get(0);
+                            t = hf.getRecord(rid);
+                            t.setHdr((short) in2_len, _in2, t2_str_sizescopy);
+                            if (PredEval.Eval(OutputFilter, tempOuter, t, _in1, _in2) == true)
+                            {
+                                // Apply a projection on the outer and inner tuples.
+                                Projection.Join(tempOuter, _in1,
+                                        t, _in2,
+                                        Jtuple, perm_mat, nOutFlds);
 
 //                            System.out.println("printing tuple after join occurs");
-                            Jtuple.print(jList);
-                            if(!outputTableName.equals("") && materialize) {
-                                outHeap.insertRecord(t.returnTupleByteArray());
-                            }
+                                //count++;
+                                //System.out.println(count);
+                                Jtuple.print(jList);
+                                if(!outputTableName.equals("") && materialize) {
+                                    outHeap.insertRecord(Jtuple.returnTupleByteArray());
+                                }
 
-                            //return;
+                                //return;
+                            }
                         }
                     }
                 }
+                else
+                {
+                    int intSearchKey = -1;
+                    intSearchKey = tempOuter.getIntFld(innerAttNo);
+                    searchResults = hash_file.search(new IntegerKey(intSearchKey));
+                    if(searchResults != null) {
+                        System.out.println(searchResults.size());
+                        for (int i = 0; i < searchResults.size(); i++) {
+                            rid = searchResults.get(i);
+                            //rid = searchResults.get(0);
+                            t = hf.getRecord(rid);
+                            t.setHdr((short) in2_len, _in2, t2_str_sizescopy);
+                            if (PredEval.Eval(OutputFilter, tempOuter, t, _in1, _in2) == true)
+                            {
+                                // Apply a projection on the outer and inner tuples.
+                                Projection.Join(tempOuter, _in1,
+                                        t, _in2,
+                                        Jtuple, perm_mat, nOutFlds);
+
+//                            System.out.println("printing tuple after join occurs");
+                                //count++;
+                                //System.out.println(count);
+                                Jtuple.print(jList);
+                                if(!outputTableName.equals("") && materialize) {
+                                    outHeap.insertRecord(Jtuple.returnTupleByteArray());
+                                }
+
+                                //return;
+                            }
+                        }
+                    }
+                }
+
             }
 
             if(!outputTableName.equals("") && materialize){
